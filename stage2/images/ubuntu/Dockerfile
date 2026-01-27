@@ -4,7 +4,7 @@ COPY source.list /suggested.sources.list
 
 RUN apt update && apt install -y curl ca-certificates apt-transport-https
 
-RUN if curl -f https://ftp.uni-stuttgart.de; then \
+RUN if curl -f http://mirrors.ustc.edu.cn/ubuntu/; then \
         echo "Using ftp.uni-stuttgart.de" && \
         cp /suggested.sources.list /etc/apt/sources.list && \
         apt update; \

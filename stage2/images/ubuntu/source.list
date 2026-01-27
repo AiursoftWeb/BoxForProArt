@@ -1,4 +1,4 @@
-deb http://ftp.uni-stuttgart.de/ubuntu/ questing main restricted universe multiverse
-deb http://ftp.uni-stuttgart.de/ubuntu/ questing-updates main restricted universe multiverse
-deb http://ftp.uni-stuttgart.de/ubuntu/ questing-backports main restricted universe multiverse
-deb http://ftp.uni-stuttgart.de/ubuntu/ questing-security main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu/ questing main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu/ questing-updates main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu/ questing-backports main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu/ questing-security main restricted universe multiverse

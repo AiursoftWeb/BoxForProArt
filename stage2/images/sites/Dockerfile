@@ -37,14 +37,10 @@ EXPOSE 80 443
 COPY --from=caddy-build-env /usr/bin/caddy /usr/bin/caddy
 COPY --from=config-build-env /app/Dist/Caddyfile /etc/caddy/Caddyfile
 
-
-
-# Now we can safely validate the Caddyfile with dummy certificates in place
-# We inject a dummy token here just to pass the validation check during build.
-# The real token will be provided at runtime via Docker Service environment variables.
-# Note: The token must look like a valid Cloudflare token (approx 40 chars) to pass validation.
 RUN caddy fmt --overwrite /etc/caddy/Caddyfile && \
-    CLOUDFLARE_API_TOKEN=ThisIsAFakeTokenForValidationOnly123456 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && \
+    CLOUDFLARE_API_TOKEN=ThisIsAFakeTokenForValidationOnly123456 \
+    ALLOW_INCOMING_IPS=127.0.0.1 \
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && \
     mkdir -p /var/log/caddy /data/caddy/logs && \
     touch /data/caddy/logs/web.log
 

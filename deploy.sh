@@ -612,7 +612,7 @@ print_warn "====================================================================
 sleep 3
 
 print_ok "Building local runner..."
-sudo docker build ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
+sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
 # /swarm-vol/click-house/config_override.xml

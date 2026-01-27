@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/containrrr/shepherd
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=UTC
+    networks:
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+      update_config:
+        order: stop-first
+        delay: 60s
+
+networks:
+  proxy_app:
+    external: true

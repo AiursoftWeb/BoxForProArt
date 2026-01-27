@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  downloader:
+    image: localhost:8080/box_starting/local_puller
+    environment:
+      - MIRROR_TARGET=hub.aiursoft.com
+      - DOCKER_USERNAME={{DOCKER_HUB_USERNAME}}
+      - DOCKER_PASSWORD={{DOCKER_HUB_PASSWORD}}
+      - LOCAL_DOCKER_USERNAME={{LOCAL_DOCKER_USERNAME}}
+      - LOCAL_DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: start-first
+        delay: 5s
+
+
+networks:
+  proxy_app:
+    external: true

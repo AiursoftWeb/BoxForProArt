@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  web_apt:
+    image: localhost:8080/box_starting/local_aptmirror:latest
+    volumes:
+      - apt-mirror-data:/data
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: start-first
+        delay: 5s
+
+volumes:
+  apt-mirror-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/aptmirror-data/data
+
+networks:
+  proxy_app:
+    external: true

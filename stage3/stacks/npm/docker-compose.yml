@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  npm:
+    image: localhost:8080/public_mirror/verdaccio/verdaccio
+    volumes:
+      - npm-data:/verdaccio/storage
+      - npm-config:/verdaccio/conf
+    networks:
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  npm-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/npm/data
+  npm-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/npm/config
+
+networks:
+  proxy_app:
+    external: true

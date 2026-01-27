@@ -32,8 +32,11 @@ cat > ./cloudflare_ips.conf << EOF
     @denied {
         # Condition 1: IP is NOT in Cloudflare ranges
         not remote_ip $ALL_RANGES
+
+        # Condition 2: IP is NOT in allowed incoming IPs
+        not remote_ip {env.ALLOW_INCOMING_IPS}
         
-        # Condition 2: IP is NOT in Docker/Local private ranges
+        # Condition 3: IP is NOT in Docker/Local private ranges
         # (Caddy joins these lines with AND logic)
         not remote_ip private_ranges
     }

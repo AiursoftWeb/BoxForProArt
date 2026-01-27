@@ -687,7 +687,7 @@ echo "  Total ranges: $(echo $ALL_RANGES | wc -w)"
 		
 		listener_wrappers {
 			http_redirect
-			ls
+			tls
 		}
 	}
 }
@@ -801,7 +801,7 @@ ENTRYPOINT ["sh", "-c", "caddy run --config /etc/caddy/Caddyfile --adapter caddy
 		
 		listener_wrappers {
 			http_redirect
-			ls
+			tls
 		}
 	}
 }

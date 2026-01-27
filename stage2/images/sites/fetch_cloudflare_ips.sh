@@ -42,7 +42,7 @@ cat > ./cloudflare_ips.conf << EOF
     }
     
     # Execute abort if the request matches the @denied criteria
-    abort @denied
+    # abort @denied
 }
 EOF
 

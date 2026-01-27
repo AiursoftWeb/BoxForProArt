@@ -1,6 +1,14 @@
 FROM localhost:8080/box_starting/local_ubuntu
 ENV DEBIAN_FRONTEND=noninteractive
 
+COPY source.list /suggested.sources.list
+RUN apt update && apt install -y curl ca-certificates apt-transport-https && \
+    cp /suggested.sources.list /etc/apt/sources.list && \
+    apt update && \
+    rm /etc/apt/sources.list.d/ubuntu.sources || true && \
+    apt modernize-sources -y && rm /etc/apt/sources.list.bak && \
+    apt upgrade -y
+
 WORKDIR /app
 COPY . .
 
@@ -41,8 +49,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
 RUN pip install PyYAML
 
 # .NET Global Tools
-RUN dotnet tool install JetBrains.ReSharper.GlobalTools --global --add-source https://nuget.aiursoft.com/v3/index.json -v d || echo 'JB already installed.' && \
-    dotnet tool install dotnet-reportgenerator-globaltool --global --add-source https://nuget.aiursoft.com/v3/index.json -v d || echo 'ReportGenerator already installed.'
+RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
+    dotnet tool install JetBrains.ReSharper.GlobalTools --global --configfile ./temp.config -v d || echo 'JB already installed.' && \
+    dotnet tool install dotnet-reportgenerator-globaltool --global --configfile ./temp.config -v d || echo 'ReportGenerator already installed.' && \
+    rm ./temp.config
 
 # Node.js Global Tools
 RUN npm config set registry https://npm.aiursoft.com && \

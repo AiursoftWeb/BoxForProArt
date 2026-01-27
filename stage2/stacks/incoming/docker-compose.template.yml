@@ -14,6 +14,7 @@ services:
         protocol: tcp
         mode: host
     networks:
+      frp_net:
       proxy_app:
         aliases:
           # Network aliases for internal DNS resolution

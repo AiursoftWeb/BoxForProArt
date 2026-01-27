@@ -113,8 +113,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: 7G
+          cpus: '6.0'
+          memory: 12G
       update_config:
         order: stop-first
         delay: 60s
@@ -143,9 +143,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'
-          memory: 4G
-      replicas: 2
+          cpus: '6.0'
+          memory: 12G
+      replicas: 4
       update_config:
         order: start-first
         delay: 5s
@@ -172,9 +172,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'
-          memory: 4G
-      replicas: 2
+          cpus: '6.0'
+          memory: 12G
+      replicas: 4
       update_config:
         order: start-first
         delay: 5s

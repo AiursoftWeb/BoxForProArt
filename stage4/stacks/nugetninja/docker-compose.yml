@@ -51,6 +51,8 @@ services:
       - MergeBot__Servers__0__EndPoint=https://gitlab.aiursoft.com
       - MergeBot__Servers__0__UserName=nuget-ninja
       - MergeBot__Servers__0__Token={{NUGET_NINJA_MERGE_TOKEN}}
+    networks:
+      - proxy_app
     stop_grace_period: 60s
     deploy:
       resources:
@@ -60,6 +62,10 @@ services:
       update_config:
         order: stop-first
         delay: 60s
+
+networks:
+  proxy_app:
+    external: true
 
 volumes:
   ninja-cache:

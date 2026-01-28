@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+
+  authentik_proxy:
+    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2025.12.1
+    volumes:
+      - type: bind
+        source: /dev/shm
+        target: /dev/shm
+        read_only: false
+    environment:
+      AUTHENTIK_HOST: "https://auth.aiursoft.com/"
+      AUTHENTIK_INSECURE: "false"
+      AUTHENTIK_TOKEN: "{{CHARTER_OUTPOST_TOKEN}}"
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: start-first
+        delay: 5s
+
+  app:
+    image: hub.aiursoft.com/aiursoft/charter
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: start-first
+        delay: 5s
+
+networks:
+  proxy_app:
+    external: true

@@ -22,7 +22,7 @@ services:
         target: /dev/shm
         read_only: false
     tmpfs:
-      - /tmp:size=1024m
+      - /tmp:size=4096m
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'https://gitlab.aiursoft.com'

@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  prbot:
+    image: hub.aiursoft.com/aiursoft/nugetninja
+    volumes:
+      - ninja-cache:/root/.local/share/NugetNinjaWorkspace/
+    environment:
+      - PrBot__Servers__0__Provider=GitLab
+      - PrBot__Servers__0__EndPoint=https://gitlab.aiursoft.com
+      - PrBot__Servers__0__PushEndPoint=https://{0}@gitlab.aiursoft.com
+      - PrBot__Servers__0__DisplayName=Nuget Ninja
+      - PrBot__Servers__0__UserName=nuget-ninja
+      - PrBot__Servers__0__UserEmail=nugetninja@outlook.com
+      - PrBot__Servers__0__ContributionBranch=users/nugetninja/evergreen
+      - PrBot__Servers__0__Token={{NUGET_NINJA_CONTRIBUTE_TOKEN}}
+      - PrBot__Servers__0__OnlyUpdate=false
+      - PrBot__LocalizationEnabled=true
+      - PrBot__OllamaApiEndpoint=https://ollama.aiursoft.com/api/chat/completions
+      - PrBot__OllamaModel=qwen3:30b-a3b-instruct-2507-q8_0
+      - PrBot__OllamaApiKey={{OLLAMA_GATEWAY_API_KEY}}
+      - PrBot__LocalizationConcurrentRequests=2
+      - PrBot__LocalizationTargetLanguages__0=en-GB
+      - PrBot__LocalizationTargetLanguages__1=zh-CN
+      - PrBot__LocalizationTargetLanguages__2=zh-TW
+      - PrBot__LocalizationTargetLanguages__3=zh-HK
+      - PrBot__LocalizationTargetLanguages__4=ja-JP
+      - PrBot__LocalizationTargetLanguages__5=ko-KR
+      - PrBot__LocalizationTargetLanguages__6=vi-VN
+      - PrBot__LocalizationTargetLanguages__7=th-TH
+      - PrBot__LocalizationTargetLanguages__8=de-DE
+      - PrBot__LocalizationTargetLanguages__9=fr-FR
+      - PrBot__LocalizationTargetLanguages__10=es-ES
+      - PrBot__LocalizationTargetLanguages__11=ru-RU
+      - PrBot__LocalizationTargetLanguages__12=it-IT
+      - PrBot__LocalizationTargetLanguages__13=pt-PT
+      - PrBot__LocalizationTargetLanguages__14=pt-BR
+      - PrBot__LocalizationTargetLanguages__15=ar-SA
+      - PrBot__LocalizationTargetLanguages__16=nl-NL
+      - PrBot__LocalizationTargetLanguages__17=sv-SE
+      - PrBot__LocalizationTargetLanguages__18=pl-PL
+      - PrBot__LocalizationTargetLanguages__19=tr-TR
+      - PrBot__LocalizationTargetLanguages__20=ro-RO
+      - PrBot__LocalizationTargetLanguages__21=da-DK
+      - PrBot__LocalizationTargetLanguages__22=uk-UA
+      - PrBot__LocalizationTargetLanguages__23=id-ID
+      - PrBot__LocalizationTargetLanguages__24=fi-FI
+      - PrBot__LocalizationTargetLanguages__25=hi-IN
+      - PrBot__LocalizationTargetLanguages__26=el-GR
+      - MergeBot__Servers__0__Provider=GitLab
+      - MergeBot__Servers__0__EndPoint=https://gitlab.aiursoft.com
+      - MergeBot__Servers__0__UserName=nuget-ninja
+      - MergeBot__Servers__0__Token={{NUGET_NINJA_MERGE_TOKEN}}
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  ninja-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ninja-data/cache

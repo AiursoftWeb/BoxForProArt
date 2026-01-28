@@ -11,6 +11,7 @@ services:
     networks:
       - proxy_app
       - internal
+      - frp_net
     volumes:
       - gitlab-data:/var/opt/gitlab
       - gitlab-log:/var/log/gitlab
@@ -204,3 +205,5 @@ networks:
     external: true
   internal:
     driver: overlay
+  frp_net:
+    external: true

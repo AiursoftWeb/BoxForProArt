@@ -592,10 +592,15 @@ print_ok "Building local aptmirror..."
 sudo docker build ./stage3/images/aptmirror -t localhost:8080/box_starting/local_aptmirror:latest
 sudo docker push localhost:8080/box_starting/local_aptmirror:latest
 
-print_ok "Starting Zot, Puller, AptMirror..."
+print_ok "Building local ppamirror..."
+sudo docker build ./stage3/images/ppamirror -t localhost:8080/box_starting/local_ppamirror:latest
+sudo docker push localhost:8080/box_starting/local_ppamirror:latest
+
+print_ok "Starting Zot, Puller, ppamirror..."
 deploy stage3/stacks/zot/docker-compose.yml zot
 deploy stage3/stacks/puller/docker-compose.yml puller
 deploy stage3/stacks/aptmirror/docker-compose.yml aptmirror
+deploy stage3/stacks/ppamirror/docker-compose.yml ppamirror
 
 print_ok "Making sure the zot is ready..."
 sleep 5

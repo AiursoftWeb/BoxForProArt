@@ -19,12 +19,36 @@ export WARNING="${Yellow}[ WARN ]${Font}"
 # Argument Parsing
 #==========================
 STACK_FILTER=""
-# Use ${1:-} and ${2:-} to provide a default empty value if arguments are not set
-if [[ "${1:-}" == "--filter" ]] && [[ -n "${2:-}" ]]; then
-  STACK_FILTER="$2"
-  echo -e "${Green}[  OK  ]${Font} ${Blue} Running with filter, will only deploy stacks containing: '$STACK_FILTER'${Font}"
-  shift 2 # Consume the two arguments so they don't interfere with other parts of the script
-fi
+TARGET_STAGE=0
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --filter)
+      if [[ -n "${2:-}" ]]; then
+        STACK_FILTER="$2"
+        echo -e "${Green}[  OK  ]${Font} ${Blue} Running with filter, will only deploy stacks containing: '$STACK_FILTER'${Font}"
+        shift 2
+      else
+         echo -e "${ERROR} ${Red} --filter requires a non-empty argument.${Font}"
+         exit 1
+      fi
+      ;;
+    --stage)
+      if [[ -n "${2:-}" ]] && [[ "$2" =~ ^[0-4]$ ]]; then
+        TARGET_STAGE="$2"
+        echo -e "${Green}[  OK  ]${Font} ${Blue} Running starting from stage: $TARGET_STAGE${Font}"
+        shift 2
+      else
+        echo -e "${ERROR} ${Red} --stage requires an integer argument (0-4).${Font}"
+        exit 1
+      fi
+      ;;
+    *)
+      echo -e "${WARNING} ${Yellow} Unknown argument: $1${Font}"
+      shift
+      ;;
+  esac
+done
 
 #==========================
 # Print Colorful Text
@@ -343,6 +367,7 @@ function deploy() {
 }
 
 # Ensure packages needed are ready
+if [ "$TARGET_STAGE" -le 0 ]; then
 print_ok "Ensure packages needed are ready..."
 ensure_packages_needed_ready
 
@@ -520,7 +545,11 @@ done
 
 print_warn "=============================================================================="
 print_warn "   Ending stage 0: Registry is ready at http://localhost:8080/"
-print_warn ""
+print_warn "=============================================================================="
+fi
+
+if [ "$TARGET_STAGE" -le 1 ]; then
+print_warn "=============================================================================="
 print_warn "   Starting stage 1: Mission is to mirror public images to the simple registry"
 print_warn "=============================================================================="
 sleep 3
@@ -529,7 +558,11 @@ bash ./stage1/mirror.sh
 
 print_warn "=============================================================================="
 print_warn "   Ending stage 1: Images are mirrored."
-print_warn ""
+print_warn "=============================================================================="
+fi
+
+if [ "$TARGET_STAGE" -le 2 ]; then
+print_warn "=============================================================================="
 print_warn "   Starting stage 2: Mission is to build and start basic web infrastructure"
 print_warn "=============================================================================="
 sleep 3
@@ -572,7 +605,11 @@ done
 
 print_warn "=============================================================================="
 print_warn "   Ending stage 2: Basic web infrastructure is ready."
-print_warn ""
+print_warn "=============================================================================="
+fi
+
+if [ "$TARGET_STAGE" -le 3 ]; then
+print_warn "=============================================================================="
 print_warn "   Starting stage 3: Mission is to build and start registries"
 print_warn "=============================================================================="
 sleep 3
@@ -611,7 +648,11 @@ done
 
 print_warn "=============================================================================="
 print_warn "   Ending stage 3: Registries are ready."
-print_warn ""
+print_warn "=============================================================================="
+fi
+
+if [ "$TARGET_STAGE" -le 4 ]; then
+print_warn "=============================================================================="
 print_warn "   Starting stage 4: Mission is to deploy business stacks"
 print_warn "=============================================================================="
 sleep 3
@@ -646,3 +687,4 @@ find ./stage4 -name 'docker-compose.yml' -print0 | while IFS= read -r -d '' file
         print_info "Skipping stack '$stack_name' due to filter."
     fi
 done
+fi

@@ -42,7 +42,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       sudo \
       python3-pip \
       shellcheck \
-      dotnet10 && \
+      dotnet10 \
+      iproute2 && \
     rm -rf /var/lib/apt/lists/*
 
 # Python packages

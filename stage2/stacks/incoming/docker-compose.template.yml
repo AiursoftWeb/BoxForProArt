@@ -20,7 +20,7 @@ services:
           # Allows internal services to resolve these domains directly to Caddy
           # without needing to go through Cloudflare or modify /etc/hosts
           ---DOMAINS---
-      frp_net
+      frp_net:
     environment:
       # Cloudflare API token for Let's Encrypt DNS-01 challenge
       # Create token at: Cloudflare Dashboard -> My Profile -> API Tokens

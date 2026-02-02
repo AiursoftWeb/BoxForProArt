@@ -16,6 +16,8 @@
 	}
 
 	servers :443 {
+		import cloudflare_trust
+
 		listener_wrappers {
 			proxy_protocol {
 				timeout 2s

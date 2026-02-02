@@ -1,0 +1,231 @@
+version: '3.9'
+
+# DB_DATA_LOCATION=./postgres
+
+# # To set a timezone, uncomment the next line and change Etc/UTC to a TZ identifier from this list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+# # TZ=Etc/UTC
+
+# # The Immich version to use. You can pin this to a specific version like "v1.71.0"
+
+# # Connection secret for postgres. You should change it to a random password
+# # Please use only the characters `A-Za-z0-9`, without special characters or spaces
+# DB_PASSWORD=postgres
+
+# # The values below this line do not need to be changed
+# ###################################################################################
+# DB_USERNAME=postgres
+# DB_DATABASE_NAME=immich
+
+services:
+  immich-server:
+    depends_on:
+      - redis
+      - database
+    image: hub.aiursoft.com/ghcr.io/immich-app/immich-server:release
+    volumes:
+      - upload-location:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+      - external:/external
+    environment:
+      - TZ=UTC
+      - DB_DATABASE_NAME=immich_db
+      - DB_USERNAME=immich_db_user
+      - DB_PASSWORD=immich_db_password
+    networks:
+      - internal
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 12G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  immich-machine-learning:
+    depends_on:
+      - redis
+      - database
+    image: hub.aiursoft.com/ghcr.io/immich-app/immich-machine-learning:release
+    volumes:
+      - model-cache:/cache
+    environment:
+      - TZ=UTC
+      - DB_DATABASE_NAME=immich_db
+      - DB_USERNAME=immich_db_user
+      - DB_PASSWORD=immich_db_password
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 12G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  redis:
+    image: hub.aiursoft.com/valkey/valkey:8-bookworm
+    volumes:
+      - redis:/data
+    networks:
+      - internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: redis-cli ping || exit 1
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  authentik_proxy:
+    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2025.12.1
+    volumes:
+      - type: bind
+        source: /dev/shm
+        target: /dev/shm
+        read_only: false
+    environment:
+      AUTHENTIK_HOST: "https://auth.aiursoft.com/"
+      AUTHENTIK_INSECURE: "false"
+      AUTHENTIK_TOKEN: "{{RANKING_OUTPOST_TOKEN}}"
+    stop_grace_period: 20s
+    networks:
+      - proxy_app
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: start-first
+        delay: 5s
+
+  ranking:
+    image: hub.aiursoft.com/anduin/photoranking
+    volumes:
+      - external:/photos
+      - ranking-data:/data
+    environment:
+      - TZ=UTC
+      - PhotoRootPath=/photos
+    networks:
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  database:
+    image: hub.aiursoft.com/ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: immich_db_password
+      POSTGRES_USER: immich_db_user
+      POSTGRES_DB: immich_db
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    networks:
+      - internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  smb:
+    image: hub.aiursoft.com/andyzhangx/samba:win-fix
+    volumes:
+      - external:/mount
+    environment:
+      - WORKGROUP=WORKGROUP
+    ports:
+      - target: 445
+        published: 445
+        protocol: tcp
+        mode: host
+    # -s <name;/path>;browsable(yes);readonly(no);guestok(yes);users(all);admins(none);writelist(none);comment(string)
+    #command: "-p -n -u 'USER;PASSWORD' -w 'WORKGROUP' -S -s 'media;/mount;yes;no;no;all;none;none;Media Share;force user = nobody;force group = nogroup;force create mode = 0666;force directory mode = 0777'"
+    command: "-p -n -u 'USER;PASSWORD' -w 'WORKGROUP' -S -s 'media;/mount;yes;no;no;all;none;none;Media Share;create mask = 0777;directory mask = 0777;force user = nobody;force group = nogroup;force create mode = 0666;force directory mode = 0777'"
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "smbclient", "-L", "//localhost", "-U", "USER%PASSWORD"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+networks:
+  internal:
+    driver: overlay
+  proxy_app:
+    external: true
+
+
+volumes:
+  upload-location:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/upload
+  external:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/external
+  model-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/model-cache
+  db-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/db-data
+  redis:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/redis
+  ranking-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/immich/ranking-data

@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+  app:
+    depends_on:
+      - db
+    image: hub.aiursoft.com/aiursoft/gitmirrorserver:latest
+    volumes:
+      - gitmirror-data:/data/files
+      - gitmirror-aspnet:/data/.aspnet
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=gitmirror;Uid=gitmirror;Pwd=<gitmirror_password>;
+      - ConnectionStrings__DbType=MySql
+      - Storage__Path=/data/files
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/gitmirror
+      - AppSettings__OIDC__ClientId={{GITMIRROR_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{GITMIRROR_CLIENT_SECRET}}
+    networks:
+      - proxy_app
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  db:
+    image: hub.aiursoft.com/mysql
+    volumes:
+      - gitmirror-db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=gitmirror
+      - MYSQL_USER=gitmirror
+      - MYSQL_PASSWORD=<gitmirror_password>
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  gitmirror-aspnet:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gitmirror-data/aspnet
+  gitmirror-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gitmirror-data/data
+  gitmirror-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gitmirror-data/db
+
+networks:
+  proxy_app:
+    external: true
+  internal:
+    driver: overlay

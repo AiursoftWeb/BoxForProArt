@@ -36,17 +36,6 @@ transport.bandwidthLimit = "3MB"
 
 # Regular update to ensure safe.
 [[proxies]]
-name = "ssh_gitea"
-type = "tcp"
-localIP = "gitea_app"
-localPort = 2201
-remotePort = 2201
-
-transport.useCompression = true
-transport.bandwidthLimit = "3MB"
-
-# Regular update to ensure safe.
-[[proxies]]
 name = "ssh_gitlab"
 type = "tcp"
 localIP = "gitlab_gitlab"

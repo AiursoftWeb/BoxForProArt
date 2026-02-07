@@ -123,8 +123,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 4G
+          cpus: '20.0'
+          memory: 8G
       update_config:
         order: stop-first
         delay: 60s

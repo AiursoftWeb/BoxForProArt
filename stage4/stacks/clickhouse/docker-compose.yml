@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   authentik_proxy:
-    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2025.12.1
+    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2025.12.3
     environment:
       AUTHENTIK_HOST: "https://auth.aiursoft.com/"
       AUTHENTIK_INSECURE: "false"

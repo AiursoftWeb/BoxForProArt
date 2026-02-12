@@ -16,7 +16,7 @@ RUN apt-get update && \
 COPY entry.sh start.sh check.py delete.py is_latest.py /app/
 
 # Avoid cache invalidation for stable layers above, download regctl with freshness check
-ADD "https://api.github.com/repos/regclient/regclient/commits?per_page=1" latest_commit
+#ADD "https://api.github.com/repos/regclient/regclient/commits?per_page=1" latest_commit
 RUN curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o /usr/local/bin/regctl && \
     chmod 755 /usr/local/bin/regctl
 

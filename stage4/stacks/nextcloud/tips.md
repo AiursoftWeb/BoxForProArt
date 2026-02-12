@@ -55,6 +55,7 @@ deploy ./box/stacks/nextcloud/docker-compose.yml nextcloud
 ## MM
 
 ```bash
+WEB_CONTAINER_ID=$(sudo docker ps | grep nextcloud_web | awk '{print $1}')
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ maintenance:update:htaccess
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ db:add-missing-indices
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ files:scan --all
@@ -64,6 +65,7 @@ sudo docker exec --user www-data $WEB_CONTAINER_ID php occ app:update --all
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ update:check
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ upgrade
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ db:convert-filecache-bigint -n
+sudo docker exec --user www-data $WEB_CONTAINER_ID php occ maintenance:repair --include-expensive
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ maintenance:mode --off
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ versions:cleanup
 sudo docker exec --user www-data $WEB_CONTAINER_ID php occ trashbin:expire

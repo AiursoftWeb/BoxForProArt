@@ -636,6 +636,7 @@ sudo docker push localhost:8080/box_starting/local_ppamirror:latest
 print_ok "Starting Zot, Puller, ppamirror..."
 deploy stage3/stacks/zot/docker-compose.yml zot
 deploy stage3/stacks/puller/docker-compose.yml puller
+deploy stage3/stacks/rsyncd/docker-compose.yml rsyncd
 deploy stage3/stacks/aptmirror/docker-compose.yml aptmirror
 deploy stage3/stacks/ppamirror/docker-compose.yml ppamirror
 

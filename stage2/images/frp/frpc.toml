@@ -44,3 +44,14 @@ remotePort = 2202
 
 transport.useCompression = true
 transport.bandwidthLimit = "3MB"
+
+# Rsync for zot-data sync to global
+[[proxies]]
+name = "rsync_hub"
+type = "tcp"
+localIP = "rsyncd_server"
+localPort = 873
+remotePort = 873
+
+transport.useCompression = true
+transport.bandwidthLimit = "3MB"

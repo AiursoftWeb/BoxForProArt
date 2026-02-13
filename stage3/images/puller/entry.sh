@@ -156,6 +156,9 @@ mirror_docker() {
             return 1
         fi
     done
+
+    log_info "Sleeping for 60s before next run... This is for cooling down the API calls to Docker Hub."
+    sleep 60
 }
 
 

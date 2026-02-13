@@ -29,6 +29,6 @@ RUN chmod +x /app/entry.sh /app/start.sh && \
         echo "PIP_BREAK_SYSTEM_PACKAGES=1"; \
         echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"; \
     } >> /etc/environment && \
-    (crontab -l 2>/dev/null || true; echo "20 * * * * . /etc/environment; /app/start.sh >> /var/log/puller-cron.log 2>&1") | crontab -
+    (crontab -l 2>/dev/null || true; echo "20 */8 * * * . /etc/environment; /app/start.sh >> /var/log/puller-cron.log 2>&1") | crontab -
 
 ENTRYPOINT ["cron", "-f", "-L 15"]

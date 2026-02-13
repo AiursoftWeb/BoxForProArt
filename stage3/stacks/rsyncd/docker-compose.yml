@@ -15,6 +15,11 @@ services:
         gid = root' > /etc/rsyncd/rsyncd.conf &&
         rsync --daemon --no-detach --config=/etc/rsyncd/rsyncd.conf --port=873
       "
+    ports:
+      - target: 873
+        published: 873
+        protocol: tcp
+        mode: host
     volumes:
       - zot-data:/data:ro
     networks:

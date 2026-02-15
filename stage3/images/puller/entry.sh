@@ -59,16 +59,26 @@ must_login_local_registry() {
 }
 
 try_docker_login() {
-    log_step "Authenticating to Docker Hub"
+    if [[ -n "$FROM_REGISTRY" ]]; then
+        log_step "Authenticating to source registry"
+        log_detail "Registry: ${FROM_REGISTRY}"
+    else
+        log_step "Authenticating to Docker Hub"
+    fi
     
     if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
-        log_warning "Docker Hub credentials not set. Skipping authentication."
+        log_warning "Docker credentials not set. Skipping authentication."
         return 0
     fi
 
     log_detail "Username: ${DOCKER_USERNAME}"
-    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
-    log_success "Successfully authenticated to Docker Hub"
+    if [[ -n "$FROM_REGISTRY" ]]; then
+        echo "$DOCKER_PASSWORD" | docker login ${FROM_REGISTRY} -u "$DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
+        log_success "Successfully authenticated to ${FROM_REGISTRY}"
+    else
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
+        log_success "Successfully authenticated to Docker Hub"
+    fi
 }
 
 
@@ -84,7 +94,14 @@ actual_mirror_docker() {
     imageTag=$(echo "$sourceImage" | cut -d: -f2)
     finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
 
-    log_detail "Source: ${sourceImage}"
+    # If FROM_REGISTRY is set, prepend it to the source image
+    if [[ -n "$FROM_REGISTRY" ]]; then
+        fullSourceImage="${FROM_REGISTRY}/${imageName}:${imageTag}"
+    else
+        fullSourceImage="${sourceImage}"
+    fi
+
+    log_detail "Source: ${fullSourceImage}"
     log_detail "Target: ${finalMirror}"
     
     # Check if already mirrored
@@ -102,9 +119,9 @@ actual_mirror_docker() {
     # Perform the copy
     log_info "Copying image (attempt ${attempt})..."
     if [[ $attempt -eq 1 ]]; then
-        /usr/local/bin/regctl image copy "$sourceImage" "$finalMirror" --digest-tags 2>&1 | sed 's/^/  /'
+        /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --digest-tags 2>&1 | sed 's/^/  /'
     else
-        /usr/local/bin/regctl image copy "$sourceImage" "$finalMirror" --force-recursive --digest-tags 2>&1 | sed 's/^/  /'
+        /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --force-recursive --digest-tags 2>&1 | sed 's/^/  /'
     fi
     sleep 3
 

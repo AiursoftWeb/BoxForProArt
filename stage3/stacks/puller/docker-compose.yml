@@ -27,9 +27,10 @@ services:
   downloader_cn:
     image: localhost:8080/box_starting/local_puller
     environment:
+      - FROM_REGISTRY=hub.aiursoft.com
       - MIRROR_TARGET=hub.aiursoft.cn
-      - DOCKER_USERNAME={{DOCKER_HUB_USERNAME}}
-      - DOCKER_PASSWORD={{DOCKER_HUB_PASSWORD}}
+      - DOCKER_USERNAME={{LOCAL_DOCKER_USERNAME}}
+      - DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
       - LOCAL_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
       - LOCAL_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
     volumes:

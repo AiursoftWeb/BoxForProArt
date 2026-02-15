@@ -3,6 +3,22 @@ import sys
 import os
 import subprocess
 
+def get_full_source_image(source_image):
+    """Get the full source image path, considering FROM_REGISTRY."""
+    from_registry = os.environ.get('FROM_REGISTRY', '')
+    
+    if ':' in source_image:
+        repo_part, tag = source_image.rsplit(':', 1)
+    else:
+        repo_part = source_image
+        tag = "latest"
+    
+    # If FROM_REGISTRY is set, prepend it to the source image
+    if from_registry:
+        return f"{from_registry}/{repo_part}:{tag}"
+    else:
+        return f"{repo_part}:{tag}"
+
 def get_mirror_image(source_image):
     """Convert a source image name to its mirror equivalent."""
     registry = os.environ.get('MIRROR_TARGET', 'hub.aiursoft.com')
@@ -55,14 +71,15 @@ def main():
         sys.exit(2)
     
     source_image = sys.argv[1]
+    full_source_image = get_full_source_image(source_image)
     mirror_image = get_mirror_image(source_image)
     
     # Check if mirror exists
     if not image_exists(mirror_image):
         sys.exit(1)
     
-    # Get and compare digests
-    source_digest = get_image_digest(source_image)
+    # Get and compare digests (use full_source_image which includes FROM_REGISTRY if set)
+    source_digest = get_image_digest(full_source_image)
     mirror_digest = get_image_digest(mirror_image)
     
     if not source_digest or not mirror_digest:

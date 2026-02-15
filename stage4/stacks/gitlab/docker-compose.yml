@@ -40,6 +40,7 @@ services:
         nginx['real_ip_trusted_addresses'] = ['10.0.0.0/8']
         nginx['real_ip_header'] = 'X-Forwarded-For'
         nginx['real_ip_recursive'] = 'on'
+        nginx['client_max_body_size'] = '10240m'
         gitlab_rails['omniauth_allow_single_sign_on'] = ['openid_connect']
         gitlab_rails['omniauth_sync_email_from_provider'] = 'openid_connect'
         gitlab_rails['omniauth_sync_profile_from_provider'] = ['openid_connect']

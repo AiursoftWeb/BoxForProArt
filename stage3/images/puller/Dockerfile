@@ -13,7 +13,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy all scripts in one layer
-COPY entry.sh start.sh check.py delete.py is_latest.py /app/
+COPY entry.sh start.sh check.py delete.py is_latest.py source_updated.py /app/
 
 # Avoid cache invalidation for stable layers above, download regctl with freshness check
 #ADD "https://api.github.com/repos/regclient/regclient/commits?per_page=1" latest_commit
@@ -22,6 +22,7 @@ RUN curl -L https://github.com/regclient/regclient/releases/latest/download/regc
 
 # Configure everything in one layer: permissions, logs, env, crontab
 RUN chmod +x /app/entry.sh /app/start.sh && \
+    mkdir -p /app/sync_records && \
     touch /var/log/puller-cron.log /var/log/puller-sessions.log && \
     { \
         echo "LANG=C.UTF-8"; \

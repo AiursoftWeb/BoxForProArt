@@ -39,6 +39,72 @@ log_detail() {
     echo -e "  ${DIM}$1${NC}"
 }
 
+# ── Sync-record helpers (used to skip unchanged images) ──────────────
+SYNC_RECORDS_DIR="/app/sync_records"
+mkdir -p "$SYNC_RECORDS_DIR"
+
+get_sync_record_file() {
+    local image="$1"
+    # Normalise: append :latest when no tag is specified
+    if [[ "$image" != *":"* ]]; then
+        image="${image}:latest"
+    fi
+    # Replace / with __ and : with _ for safe filenames
+    echo "${SYNC_RECORDS_DIR}/$(echo "$image" | sed 's|/|__|g; s|:|_|g')"
+}
+
+save_sync_record() {
+    local image="$1"
+    local record_file
+    record_file=$(get_sync_record_file "$image")
+    date +%s > "$record_file"
+}
+
+get_last_sync_time() {
+    local image="$1"
+    local record_file
+    record_file=$(get_sync_record_file "$image")
+    if [[ -f "$record_file" ]]; then
+        cat "$record_file"
+    else
+        echo "0"
+    fi
+}
+
+should_skip_image() {
+    local sourceImage="$1"
+
+    if [[ "$sourceImage" != *":"* ]]; then
+        sourceImage="${sourceImage}:latest"
+    fi
+
+    local imageName imageTag finalMirror lastSync
+    imageName=$(echo "$sourceImage" | cut -d: -f1)
+    imageTag=$(echo "$sourceImage" | cut -d: -f2)
+    finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
+
+    lastSync=$(get_last_sync_time "$sourceImage")
+
+    if [[ "$lastSync" == "0" ]]; then
+        # Never synced before – must proceed
+        return 1
+    fi
+
+    # Ask source_updated.py whether a sync is needed
+    #   exit 0 → safe to skip  |  exit 1 → must sync
+    if python3 source_updated.py "$sourceImage" "$lastSync" 2>/dev/null; then
+        # Double-check: the image must still be present in our mirror
+        if python3 check.py "$finalMirror" 2>/dev/null; then
+            return 0   # skip
+        else
+            log_warning "Source unchanged but mirror image missing/invalid – will re-sync"
+            return 1
+        fi
+    fi
+
+    return 1   # proceed with sync
+}
+
 must_login_local_registry() {
     if [[ -z "$MIRROR_TARGET" ]]; then
         log_error "MIRROR_TARGET is not set. Cannot proceed."
@@ -113,6 +179,7 @@ actual_mirror_docker() {
             return 1
         fi
         log_success "Image is up-to-date and valid"
+        save_sync_record "$sourceImage"
         return 0
     fi
 
@@ -141,6 +208,7 @@ actual_mirror_docker() {
     fi
 
     log_success "Image mirrored and verified successfully"
+    save_sync_record "$sourceImage"
     return 0
 }
 
@@ -151,6 +219,13 @@ mirror_docker() {
     max_attempts=8
     
     log_step "Mirroring: ${BOLD}${sourceImage}${NC}"
+
+    # ── Skip images whose source has not changed since last sync ──
+    if should_skip_image "$sourceImage"; then
+        log_success "Skipped ${BOLD}${sourceImage}${NC} (source unchanged since last sync)"
+        echo ""
+        return 0
+    fi
     
     for attempt in $(seq 1 $max_attempts); do
         log_info "Attempt ${attempt}/${max_attempts}"

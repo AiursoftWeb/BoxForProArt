@@ -11,6 +11,7 @@ services:
       - LOCAL_DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - sync_records:/app/sync_records
     networks:
       - proxy_app
     stop_grace_period: 20s
@@ -35,6 +36,7 @@ services:
       - LOCAL_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - sync_records_cn:/app/sync_records
     networks:
       - proxy_app
     stop_grace_period: 20s
@@ -51,3 +53,7 @@ services:
 networks:
   proxy_app:
     external: true
+
+volumes:
+  sync_records:
+  sync_records_cn:

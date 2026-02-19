@@ -56,4 +56,14 @@ networks:
 
 volumes:
   sync_records:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/puller-data/sync_records
   sync_records_cn:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/puller-data/sync_records_cn

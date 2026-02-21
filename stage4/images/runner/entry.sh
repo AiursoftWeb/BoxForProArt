@@ -57,7 +57,7 @@ echo "Current buildx builders visible to gitlab-runner:"
 su -s /bin/bash gitlab-runner -c "docker buildx ls"
 if ! su -s /bin/bash gitlab-runner -c "docker buildx ls" | grep -qw "$BUILDER_NAME"; then
     echo "Builder '$BUILDER_NAME' not found. Creating with docker-container driver and host networking..."
-    su -s /bin/bash gitlab-runner -c "docker buildx create --name \"$BUILDER_NAME\" --driver docker-container --driver-opt network=host --use --bootstrap"
+    su -s /bin/bash gitlab-runner -c "docker buildx create --name \"$BUILDER_NAME\" --driver docker-container --use --bootstrap"
     echo "Builder created and bootstrapped. Supported platforms:"
     su -s /bin/bash gitlab-runner -c "docker buildx inspect \"$BUILDER_NAME\" | grep Platforms"
 else

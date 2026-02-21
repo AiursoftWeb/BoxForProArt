@@ -28,6 +28,12 @@ if [[ "$1" == "build" ]]; then
 elif [[ "$1" == "buildx" && "$2" == "build" ]]; then
     shift 2
     exec "$REAL_DOCKER" buildx build --network=host "${ADD_HOST_ARGS[@]}" "$@"
+elif [[ "$1" == "buildx" && "$2" == "create" ]]; then
+    # Inject --driver-opt network=host so the BuildKit daemon container
+    # itself uses host networking (needed for pulling base images from
+    # internal registries like hub.aiursoft.com)
+    shift 2
+    exec "$REAL_DOCKER" buildx create --driver-opt network=host "$@"
 else
     # Pass through other commands
     exec "$REAL_DOCKER" "$@"

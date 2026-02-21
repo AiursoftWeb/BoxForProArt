@@ -661,6 +661,16 @@ print_ok "Building local runner..."
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
+print_ok "Ensuring multi-arch build environment..."
+BINFMT_ARM64="/proc/sys/fs/binfmt_misc/qemu-aarch64"
+[ -f "$BINFMT_ARM64" ] || sudo docker run --privileged --rm tonistiigi/binfmt --install all
+BUILDER_NAME="aiur-global-builder"
+if ! sudo docker buildx ls | grep -qw "$BUILDER_NAME"; then
+    sudo docker buildx create --name "$BUILDER_NAME" --driver docker-container --driver-opt network=host --use --bootstrap
+else
+    sudo docker buildx use "$BUILDER_NAME" > /dev/null 2>&1
+fi
+
 # /swarm-vol/click-house/config_override.xml
 print_ok "Copying ClickHouse config override file..."
 sudo cp ./stage4/stacks/clickhouse/users_override.xml /swarm-vol/click-house/users_override.xml || true

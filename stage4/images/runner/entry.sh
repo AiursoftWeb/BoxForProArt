@@ -51,5 +51,21 @@ gitlab-runner register \
     --env "LOCAL_NUGET_API_KEY=${LOCAL_NUGET_API_KEY}" \
     --env "NUGET_API_KEY=${NUGET_API_KEY}"
 
+echo "Ensuring global buildx builder for CI..."
+echo "Current buildx builders:"
+docker buildx ls
+BUILDER_NAME="aiur-global-builder"
+if ! docker buildx ls | grep -qw "$BUILDER_NAME"; then
+    echo "Builder '$BUILDER_NAME' not found. Creating with docker-container driver and host networking..."
+    docker buildx create --name "$BUILDER_NAME" --driver docker-container --driver-opt network=host --use --bootstrap
+    echo "Builder created and bootstrapped. Supported platforms:"
+    docker buildx inspect "$BUILDER_NAME" | grep Platforms
+else
+    echo "Builder '$BUILDER_NAME' already exists. Setting as active..."
+    docker buildx use "$BUILDER_NAME"
+    echo "Builder status:"
+    docker buildx inspect "$BUILDER_NAME" | grep -E 'Status|Platforms'
+fi
+
 #gitlab-runner start
 gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner

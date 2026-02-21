@@ -16,17 +16,18 @@ TARGET_DOMAINS=(
     "mirror.aiursoft.com"
 )
 
+# Build arguments array
+ADD_HOST_ARGS=()
+for domain in "${TARGET_DOMAINS[@]}"; do
+    ADD_HOST_ARGS+=(--add-host "$domain:$HOST_IP")
+done
+
 if [[ "$1" == "build" ]]; then
     shift
-    
-    # Build arguments array
-    ADD_HOST_ARGS=()
-    for domain in "${TARGET_DOMAINS[@]}"; do
-        ADD_HOST_ARGS+=(--add-host "$domain:$HOST_IP")
-    done
-
-    # Execute real docker with host injection
     exec "$REAL_DOCKER" build --network=host "${ADD_HOST_ARGS[@]}" "$@"
+elif [[ "$1" == "buildx" && "$2" == "build" ]]; then
+    shift 2
+    exec "$REAL_DOCKER" buildx build --network=host "${ADD_HOST_ARGS[@]}" "$@"
 else
     # Pass through other commands
     exec "$REAL_DOCKER" "$@"

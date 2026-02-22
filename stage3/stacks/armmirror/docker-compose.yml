@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  web_arm:
+    image: localhost:8080/box_starting/local_armmirror:latest
+    volumes:
+      - arm-mirror-data:/data
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: start-first
+        delay: 5s
+
+volumes:
+  arm-mirror-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/armmirror-data/data
+
+networks:
+  proxy_app:
+    external: true

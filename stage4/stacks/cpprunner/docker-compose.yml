@@ -13,6 +13,8 @@ services:
       - proxy_app
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       replicas: 2
       resources:
         limits:

@@ -21,6 +21,8 @@ services:
       - GIN_MODE=release
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '8.0'
@@ -60,6 +62,8 @@ services:
           done
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '1.0'
@@ -87,6 +91,8 @@ services:
       retries: 5
       timeout: 5s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '4.0'
@@ -115,6 +121,8 @@ services:
       - proxy_app
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '4.0'
@@ -135,6 +143,8 @@ services:
       - internal
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       replicas: 2
       resources:
         limits:
@@ -154,6 +164,8 @@ services:
       - mcpo-data:/data
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '6.0'
@@ -200,6 +212,8 @@ services:
       - internal
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '6.0'

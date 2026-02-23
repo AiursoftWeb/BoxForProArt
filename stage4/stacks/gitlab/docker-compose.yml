@@ -113,6 +113,8 @@ services:
       retries: 12
       start_period: 1200s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '6.0'

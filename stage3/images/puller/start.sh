@@ -13,7 +13,9 @@ fi
 SESSION_NAME="puller-$(date +%Y%m%d-%H%M%S)"
 
 # Create a new detached tmux session and run entry.sh.
-# The session stays open after entry.sh exits so you can inspect output.
-tmux new-session -d -s "$SESSION_NAME" "/app/entry.sh"
+# Set remain-on-exit so the session (and its scrollback) survives after
+# entry.sh finishes, allowing post-mortem inspection via tmux attach.
+tmux new-session -d -s "$SESSION_NAME" /app/entry.sh
+tmux set-option -t "$SESSION_NAME" remain-on-exit on
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Created tmux session: $SESSION_NAME" >> /var/log/puller-sessions.log

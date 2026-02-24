@@ -14,10 +14,11 @@ fi
 SESSION_NAME="puller-$(date +%Y%m%d-%H%M%S)"
 
 # Create a new detached tmux session and run entry.sh.
-# Set remain-on-exit BEFORE starting entry.sh to avoid a race condition where
-# entry.sh finishes before remain-on-exit is applied (causing the session to vanish).
-tmux new-session -d -s "$SESSION_NAME"
-tmux set-option -t "$SESSION_NAME" remain-on-exit on
-tmux send-keys -t "$SESSION_NAME" "/app/entry.sh" Enter
+# remain-on-exit is set GLOBALLY before session creation to avoid a race condition
+# where entry.sh finishes before remain-on-exit can be applied to the session.
+# entry.sh is passed directly as the session command so it correctly inherits
+# all environment variables from the current process.
+tmux set-option -sg remain-on-exit on
+tmux new-session -d -s "$SESSION_NAME" /app/entry.sh
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Created tmux session: $SESSION_NAME" >> /var/log/puller-sessions.log

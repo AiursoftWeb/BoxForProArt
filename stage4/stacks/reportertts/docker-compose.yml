@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/internalimages/reportertts:latest
+    volumes:
+      - reportertts-data:/data
+    networks:
+      - proxy_app
+    stop_grace_period: 120s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 24G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  reportertts-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/reportertts/data
+
+networks:
+  proxy_app:
+    external: true

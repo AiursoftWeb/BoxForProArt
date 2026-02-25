@@ -5,6 +5,9 @@ services:
     image: hub.aiursoft.com/aiursoft/internalimages/reportertts:latest
     volumes:
       - reportertts-data:/data
+    environment:
+      - CUDA_VISIBLE_DEVICES=-1
+      - NVIDIA_VISIBLE_DEVICES=void
     networks:
       - proxy_app
     stop_grace_period: 120s

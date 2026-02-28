@@ -368,6 +368,8 @@ images=(
     "ollama/ollama"
     "oven/bun:slim"
     "owncast/owncast"
+    "paddlepaddle/paddle"
+    "m986883511/paddleocr:api"
     "passivelemon/terraria-docker"
     "perl:5.39.5"
     "phanan/koel"

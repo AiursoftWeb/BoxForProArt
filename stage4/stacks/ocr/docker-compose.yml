@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/m986883511/paddleocr:api
+    networks:
+      - proxy_app
+      - internal
+    stop_grace_period: 20s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: start-first
+        delay: 5s
+
+networks:
+  proxy_app:
+    external: true
+  internal:
+    driver: overlay

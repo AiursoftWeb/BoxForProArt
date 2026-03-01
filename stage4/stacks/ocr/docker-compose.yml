@@ -5,6 +5,7 @@ services:
     image: hub.aiursoft.com/m986883511/paddleocr:api
     shm_size: 8g
     environment:
+      # CPU optimization: GPU memory is currently full, so we explicitly disable GPU and optimize for CPU usage
       - CUDA_VISIBLE_DEVICES=-1
       - NVIDIA_VISIBLE_DEVICES=none
       - USE_GPU=0

@@ -15,6 +15,7 @@ services:
       - USE_GPU=0
       - USE_TENSORRT=0
       - USE_XPU=0
+      - USE_PADDLE_INFERENCE=True
       - OMP_NUM_THREADS=4
       - MKL_NUM_THREADS=4
       - ENABLE_MKLDNN=True

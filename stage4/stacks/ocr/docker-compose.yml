@@ -3,7 +3,11 @@ version: '3.9'
 services:
   app:
     image: hub.aiursoft.com/m986883511/paddleocr:api
-    shm_size: 8g
+    volumes:
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 8G
     environment:
       # CPU optimization: GPU memory is currently full, so we explicitly disable GPU and optimize for CPU usage
       - CUDA_VISIBLE_DEVICES=-1

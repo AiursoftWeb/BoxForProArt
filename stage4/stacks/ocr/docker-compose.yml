@@ -5,6 +5,7 @@ services:
     image: hub.aiursoft.com/m986883511/paddleocr:api
     environment:
       - CUDA_VISIBLE_DEVICES=-1
+      - NVIDIA_VISIBLE_DEVICES=none
     networks:
       - proxy_app
       - internal

@@ -3,6 +3,8 @@ version: '3.9'
 services:
   app:
     image: hub.aiursoft.com/m986883511/paddleocr:api
+    environment:
+      - CUDA_VISIBLE_DEVICES=-1
     networks:
       - proxy_app
       - internal
@@ -20,11 +22,6 @@ services:
         limits:
           cpus: '4.0'
           memory: 8G
-        reservations:
-          generic_resources:
-            - discrete_resource_spec:
-                kind: "NVIDIA-GPU"
-                value: 0
       update_config:
         order: start-first
         delay: 5s

@@ -5,6 +5,9 @@ services:
     image: hub.aiursoft.com/m986883511/paddleocr:api
     environment:
       - CUDA_VISIBLE_DEVICES=-1
+      - USE_GPU=0
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
     networks:
       - proxy_app
       - internal

@@ -24,6 +24,10 @@ RUN curl -L https://github.com/regclient/regclient/releases/latest/download/regc
 RUN chmod +x /app/entry.sh /app/start.sh && \
     mkdir -p /app/sync_records && \
     touch /var/log/puller-cron.log /var/log/puller-sessions.log && \
+    # Fix cron in Docker: pam_loginuid.so requires CAP_AUDIT_WRITE which
+    # is unavailable in unprivileged containers / Swarm mode.  Without this
+    # fix cron silently drops every scheduled job.
+    sed -i '/pam_loginuid/s/required/optional/' /etc/pam.d/cron || true && \
     { \
         echo "LANG=C.UTF-8"; \
         echo "LC_ALL=C.UTF-8"; \

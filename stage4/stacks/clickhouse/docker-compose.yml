@@ -11,6 +11,8 @@ services:
     networks:
       - proxy_app
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '2.0'
@@ -35,6 +37,8 @@ services:
       - /swarm-vol/click-house/users_override.xml:/etc/clickhouse-server/users.d/users_override.xml
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '4.0'

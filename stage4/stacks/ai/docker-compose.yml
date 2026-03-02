@@ -8,19 +8,22 @@ services:
     networks:
       - internal
     environment:
-      - OLLAMA_NUM_CTX=32768
+    # - OLLAMA_NUM_CTX=32768      # ❌ 必须删掉这行！否则向量模型也会默认去申请 32K，导致显存规划错乱。
+      - OLLAMA_MAX_LOADED_MODELS=2  # ✅ 新增这行！明确告诉 Ollama 的调度器：我有钱，请允许同时把 2 个模型常驻在显存里，不要互相踢。
       - OLLAMA_NUM_BATCH=2048
       - OLLAMA_SCHED_SPREAD=1
       - OLLAMA_KV_CACHE_TYPE=q8_0
       - OLLAMA_FLASH_ATTENTION=1
       - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_KEEP_ALIVE=-1        # 永久驻留显存！既然是专用服务器，别让它卸载。
-      - OLLAMA_LOAD_TIMEOUT=15m     # 增加加载超时时间（默认是 5m，但有时 runner 握手需要更久）
-      - OLLAMA_DEBUG=1              # 保持开启，观察日志
-      - OLLAMA_NUM_PARALLEL=1       # 3090 显存有限，30B Q8 很大，并发设为 1 比较稳
+      - OLLAMA_KEEP_ALIVE=-1        # ✅ 保持不变，永久驻留
+      - OLLAMA_LOAD_TIMEOUT=15m     
+      - OLLAMA_DEBUG=1              
+      - OLLAMA_NUM_PARALLEL=1       # ✅ 保持单并发生成，防止抢夺 KV Cache
       - GIN_MODE=release
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '8.0'
@@ -55,11 +58,14 @@ services:
           apk add curl && \
           sleep 40 && \
           while true; do \
-            curl -v http://ollama-server:11434/api/generate -d '{"model": "qwen3:30b-a3b-instruct-2507-q8_0"}'; \
+            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "qwen3.5:27b-q8_0", "options": {"num_ctx": 32768}}' ; \
+            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "qwen3-embedding:8b", "options": {"num_ctx": 8192}}' ; \
             sleep 900; \
           done
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '1.0'
@@ -87,6 +93,8 @@ services:
       retries: 5
       timeout: 5s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '4.0'
@@ -115,6 +123,8 @@ services:
       - proxy_app
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '4.0'
@@ -135,6 +145,8 @@ services:
       - internal
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       replicas: 2
       resources:
         limits:
@@ -154,6 +166,8 @@ services:
       - mcpo-data:/data
     stop_grace_period: 20s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '6.0'
@@ -200,6 +214,8 @@ services:
       - internal
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '6.0'

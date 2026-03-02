@@ -16,7 +16,7 @@ services:
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
       - AppSettings__AuthProvider=OIDC
-      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/aiurdrive
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/cpp-runner
       - AppSettings__OIDC__ClientId={{CPPRUNNER_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{CPPRUNNER_CLIENT_SECRET}}
     networks:

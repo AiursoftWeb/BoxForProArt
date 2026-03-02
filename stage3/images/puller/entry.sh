@@ -292,6 +292,7 @@ images=(
     "filebrowser/filebrowser"
     "frolvlad/alpine-gxx"
     "gcc"
+    "gcc:15.2.0"
     "gcc:4.9.4"
     "ghcr.io/anduin2017/how-to-cook:latest"
     "ghcr.io/caioricciuti/ch-ui:latest"

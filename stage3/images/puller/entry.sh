@@ -340,6 +340,7 @@ images=(
     "mcr.microsoft.com/dotnet/sdk:8.0"
     "mcr.microsoft.com/dotnet/sdk:9.0"
     "mcr.microsoft.com/mssql/server"
+    "mcr.microsoft.com/powershell:7.5-ubuntu-24.04"
     "mcr.microsoft.com/powershell"
     "mediawiki"
     "mediacms/mediacms"

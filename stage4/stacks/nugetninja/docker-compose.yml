@@ -17,7 +17,7 @@ services:
       - PrBot__Servers__0__OnlyUpdate=false
       - PrBot__LocalizationEnabled=true
       - PrBot__OllamaApiEndpoint=https://ollama.aiursoft.com/api/chat/completions
-      - PrBot__OllamaModel=qwen3:30b-a3b-instruct-2507-q8_0
+      - PrBot__OllamaModel=qwen3.5:27b-q8_0
       - PrBot__OllamaApiKey={{OLLAMA_GATEWAY_API_KEY}}
       - PrBot__LocalizationConcurrentRequests=2
       - PrBot__LocalizationTargetLanguages__0=en-GB

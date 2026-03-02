@@ -23,6 +23,7 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
     *   `gitlab`: The full DevOps lifecycle platform.
     *   `clickhouse`: Analytics database.
     *   `nextcloud`: File storage and collaboration (20TB pool).
+    *   `ocr`: PaddleOCR API service (optimized for CPU).
     *   `jellyfin`: Media streaming.
     *   `ai`: LLM and Stable Diffusion inference services (leveraging the GPUs).
     *   `runner`: GitLab CI/CD runners executing build jobs.

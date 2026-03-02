@@ -370,6 +370,8 @@ images=(
     "ollama/ollama"
     "oven/bun:slim"
     "owncast/owncast"
+    # m986883511/paddleocr:api is self-contained for the OCR service, so paddlepaddle/paddle is not needed.
+    "m986883511/paddleocr:api"
     "passivelemon/terraria-docker"
     "perl:5.39.5"
     "phanan/koel"

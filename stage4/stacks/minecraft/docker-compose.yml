@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  server:
+    image: hub.aiursoft.com/aiursoft/internalimages/minecraft
+    volumes:
+      - world:/app/world
+      - world-nether:/app/world_nether
+      - world-the-end:/app/world_the_end
+      - dynmap:/app/plugins/dynmap
+      - mc-log:/var/log/mc
+    networks:
+      - proxy_app
+      - frp_net
+    ports:
+      # These ports are for internal use. For external, FRP will handle it.
+      - target: 25565
+        published: 25565
+        protocol: tcp
+        mode: host
+      # bedrock
+      - target: 19132
+        published: 19132
+        protocol: udp
+        mode: host
+      # 8123 will be proxied by Caddy.
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 32G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  world:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/mc/world
+  world-nether:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/mc/world_nether
+  world-the-end:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/mc/world_the_end
+  dynmap:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/mc/dynmap
+  mc-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/mc/log
+
+networks:
+  frp_net:
+    external: true
+  proxy_app:
+    external: true

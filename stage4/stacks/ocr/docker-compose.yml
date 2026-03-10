@@ -8,7 +8,7 @@ services:
         target: /dev/shm
     environment:
       # Optional: If you want to require authentication for API calls, set this in your .env
-      - OCR_ACCESS_TOKEN=${OCR_ACCESS_TOKEN:-}
+      - OCR_ACCESS_TOKEN={{OCR_ACCESS_TOKEN}}
     networks:
       - proxy_app
       - internal

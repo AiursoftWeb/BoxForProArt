@@ -299,6 +299,7 @@ images=(
     "ghcr.io/nextcloud-releases/aio-talk"
     "ghcr.io/open-webui/mcpo:main"
     "ghcr.io/open-webui/open-webui:main"
+    "ghcr.io/open-webui/open-terminal"
     "ghcr.io/thomiceli/opengist"
     "ghcr.io/usememos/memos"
     "ghcr.io/goauthentik/server:2025.12.3"

@@ -2,29 +2,18 @@ version: '3.9'
 
 services:
   app:
-    image: hub.aiursoft.com/m986883511/paddleocr:api
+    image: hub.aiursoft.com/aiursoft/internalimages/paddleocr:latest
     volumes:
       - type: tmpfs
         target: /dev/shm
-      - models:/m986883511/ch_PP-OCRv3_det_infer
-      - models_rec:/m986883511/ch_PP-OCRv3_rec_infer
     environment:
-      # CPU optimization: GPU memory is currently full, so we explicitly disable GPU and optimize for CPU usage
-      - CUDA_VISIBLE_DEVICES=-1
-      - NVIDIA_VISIBLE_DEVICES=none
-      - USE_GPU=0
-      - USE_TENSORRT=0
-      - USE_XPU=0
-      - USE_PADDLE_INFERENCE=True
-      - OMP_NUM_THREADS=4
-      - MKL_NUM_THREADS=4
-      - ENABLE_MKLDNN=True
-      - CPU_NUM_THREADS=4
+      # Optional: If you want to require authentication for API calls, set this in your .env
+      - OCR_ACCESS_TOKEN=${OCR_ACCESS_TOKEN:-}
     networks:
       - proxy_app
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -43,20 +32,6 @@ services:
       update_config:
         order: start-first
         delay: 5s
-
-volumes:
-  models:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ocr-data/ch_PP-OCRv3_det_infer
-  models_rec:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ocr-data/ch_PP-OCRv3_rec_infer
 
 networks:
   proxy_app:

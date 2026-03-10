@@ -6,6 +6,8 @@ services:
     volumes:
       - type: tmpfs
         target: /dev/shm
+      - models:/m986883511/ch_PP-OCRv3_det_infer
+      - models_rec:/m986883511/ch_PP-OCRv3_rec_infer
     environment:
       # CPU optimization: GPU memory is currently full, so we explicitly disable GPU and optimize for CPU usage
       - CUDA_VISIBLE_DEVICES=-1
@@ -41,6 +43,20 @@ services:
       update_config:
         order: start-first
         delay: 5s
+
+volumes:
+  models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ocr-data/ch_PP-OCRv3_det_infer
+  models_rec:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ocr-data/ch_PP-OCRv3_rec_infer
 
 networks:
   proxy_app:

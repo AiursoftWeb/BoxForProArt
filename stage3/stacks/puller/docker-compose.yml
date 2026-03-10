@@ -10,8 +10,8 @@ services:
       - LOCAL_DOCKER_USERNAME={{LOCAL_DOCKER_USERNAME}}
       - LOCAL_DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - sync_records:/app/sync_records
+      - run_logs:/app/run_logs
     networks:
       - proxy_app
     stop_grace_period: 20s
@@ -35,8 +35,8 @@ services:
       - LOCAL_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
       - LOCAL_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - sync_records_cn:/app/sync_records
+      - run_logs_cn:/app/run_logs
     networks:
       - proxy_app
     stop_grace_period: 20s
@@ -67,3 +67,15 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/puller-data/sync_records_cn
+  run_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/puller-data/run_logs
+  run_logs_cn:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/puller-data/run_logs_cn

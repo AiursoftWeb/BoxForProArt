@@ -88,7 +88,7 @@ def main():
         sys.exit(2)
 
     # --- Layer 1: time-based skip (works for ALL registries, zero API calls) ---
-    skip_hours = float(os.environ.get('SKIP_IF_SYNCED_HOURS', '8'))
+    skip_hours = float(os.environ.get('SKIP_IF_SYNCED_HOURS', '7.5'))
     hours_since_sync = (time.time() - last_sync_epoch) / 3600.0
 
     if hours_since_sync < skip_hours:

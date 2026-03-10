@@ -94,7 +94,7 @@ should_skip_image() {
     #   exit 0 → safe to skip  |  exit 1 → must sync
     if python3 source_updated.py "$sourceImage" "$lastSync" 2>/dev/null; then
         # Double-check: the image must still be present in our mirror
-        if python3 check.py "$finalMirror" 2>/dev/null; then
+        if /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
             return 0   # skip
         else
             log_warning "Source unchanged but mirror image missing/invalid – will re-sync"
@@ -120,7 +120,7 @@ must_login_local_registry() {
         exit 1
     fi
 
-    echo "$LOCAL_DOCKER_PASSWORD" | docker login ${MIRROR_TARGET} -u "$LOCAL_DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
+    /usr/local/bin/regctl registry login "${MIRROR_TARGET}" -u "$LOCAL_DOCKER_USERNAME" -p "$LOCAL_DOCKER_PASSWORD" > /dev/null 2>&1
     log_success "Successfully authenticated to ${MIRROR_TARGET}"
 }
 
@@ -139,10 +139,10 @@ try_docker_login() {
 
     log_detail "Username: ${DOCKER_USERNAME}"
     if [[ -n "$FROM_REGISTRY" ]]; then
-        echo "$DOCKER_PASSWORD" | docker login ${FROM_REGISTRY} -u "$DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
+        /usr/local/bin/regctl registry login "${FROM_REGISTRY}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
         log_success "Successfully authenticated to ${FROM_REGISTRY}"
     else
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin > /dev/null 2>&1
+        /usr/local/bin/regctl registry login "docker.io" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
         log_success "Successfully authenticated to Docker Hub"
     fi
 }
@@ -170,12 +170,16 @@ actual_mirror_docker() {
     log_detail "Source: ${fullSourceImage}"
     log_detail "Target: ${finalMirror}"
     
-    # Check if already mirrored
-    if python3 is_latest.py "$sourceImage" 2>/dev/null; then
-        log_info "Image already mirrored, verifying integrity..."
-        if ! python3 check.py "$finalMirror" 2>/dev/null; then
+    # Check if already mirrored by comparing digests
+    log_info "Checking if image is already up-to-date..."
+    src_digest=$(/usr/local/bin/regctl image digest "$fullSourceImage" 2>/dev/null)
+    dest_digest=$(/usr/local/bin/regctl image digest "$finalMirror" 2>/dev/null)
+
+    if [[ -n "$src_digest" && "$src_digest" == "$dest_digest" ]]; then
+        log_info "Image already mirrored (digests match), verifying integrity..."
+        if ! /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
             log_warning "Integrity check failed, cleaning up..."
-            python3 delete.py "$finalMirror" 2>/dev/null || true
+            /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
             return 1
         fi
         log_success "Image is up-to-date and valid"
@@ -197,13 +201,7 @@ actual_mirror_docker() {
     
     if ! /usr/local/bin/regctl image manifest "$finalMirror" &> /dev/null; then
         log_error "Manifest verification failed"
-        python3 delete.py "$finalMirror" 2>/dev/null || true
-        return 1
-    fi
-    
-    if ! python3 check.py "$finalMirror" 2>/dev/null; then
-        log_error "Health check failed"
-        python3 delete.py "$finalMirror" 2>/dev/null || true
+        /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
         return 1
     fi
 

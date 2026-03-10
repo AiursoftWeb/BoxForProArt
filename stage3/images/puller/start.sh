@@ -1,24 +1,28 @@
 #!/bin/bash
-# This script runs entry.sh in a new tmux session.
-# Sessions are kept alive after completion for debugging (tmux attach -t <session>).
+# This script is called by cron to run entry.sh.
+# It guards against overlapping runs, logs to stdout, and saves a timestamped physical log.
 
 # Guard: if entry.sh is still running from a previous cron trigger, skip this run.
-# We check the process table, NOT tmux session names, so completed-but-kept sessions
-# do not block the next scheduled run.
 if pgrep -f "/app/entry.sh" > /dev/null 2>&1; then
-    MSG="[$(date '+%Y-%m-%d %H:%M:%S')] entry.sh already running, skipping this cron trigger."
-    echo "$MSG" | tee -a /var/log/puller-sessions.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] entry.sh already running, skipping this cron trigger."
     exit 0
 fi
 
-SESSION_NAME="puller-$(date +%Y%m%d-%H%M%S)"
+# Prepare log directory and timestamped file
+LOG_DIR="/app/run_logs"
+mkdir -p "$LOG_DIR"
+TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+LOG_FILE="${LOG_DIR}/run_${TIMESTAMP}.log"
 
-# Create a new detached tmux session and run entry.sh.
-# remain-on-exit is set GLOBALLY before session creation to avoid a race condition
-# where entry.sh finishes before remain-on-exit can be applied to the session.
-# entry.sh is passed directly as the session command so it correctly inherits
-# all environment variables from the current process.
-tmux set-option -sg remain-on-exit on 2>/dev/null || true
-tmux new-session -d -s "$SESSION_NAME" /app/entry.sh
+# Auto-cleanup: delete logs older than 14 days
+find "$LOG_DIR" -name "run_*.log" -type f -mtime +14 -delete
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Created tmux session: $SESSION_NAME" >> /var/log/puller-sessions.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting entry.sh. Physical log saved to $LOG_FILE"
+
+# Execute entry.sh, merge stderr into stdout, then tee to both the log file and Docker stdout
+/app/entry.sh 2>&1 | tee "$LOG_FILE"
+
+# PIPESTATUS[0] captures entry.sh's exit code (not tee's)
+EXIT_CODE=${PIPESTATUS[0]}
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] entry.sh finished with exit code ${EXIT_CODE}" | tee -a "$LOG_FILE"

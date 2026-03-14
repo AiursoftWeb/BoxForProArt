@@ -36,4 +36,4 @@ RUN chmod +x /app/entry.sh /app/start.sh && \
     } >> /etc/environment && \
     (crontab -l 2>/dev/null || true; echo "20 */8 * * * . /etc/environment; /app/start.sh > /proc/1/fd/1 2>/proc/1/fd/2") | crontab -
 
-ENTRYPOINT ["tini", "--", "cron", "-f", "-L", "15"]
+ENTRYPOINT ["tini", "--", "sh", "-c", "printenv | grep -v ' ' >> /etc/environment && cron -f -L 15"]

@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/internalimages/kiwix
+    networks:
+      - proxy_app
+    volumes:
+      - kiwix-data:/data
+    stop_grace_period: 20s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: start-first
+        delay: 5s
+
+volumes:
+  kiwix-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/wiki-data
+
+networks:
+  proxy_app:
+    external: true

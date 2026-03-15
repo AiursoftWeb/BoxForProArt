@@ -118,9 +118,12 @@ services:
       - Underlyings__Ollama__Instance=http://ollama-server:11434/
       - BingSearchAPIKey={{BING_SEARCH_KEY}}
       - ApiKey={{OLLAMA_GATEWAY_API_KEY}}
+      - Clickhouse__Enabled=true
+      - Clickhouse__ConnectionString=Host=clickhouse;Protocol=http;Port=8123;User=default;Password=123456;Database=default
     networks:
       - internal
       - proxy_app
+      - clickhouse_net
     stop_grace_period: 20s
     deploy:
       labels:
@@ -228,6 +231,8 @@ networks:
   internal:
     driver: overlay
   proxy_app:
+    external: true
+  clickhouse_net:
     external: true
 
 volumes:

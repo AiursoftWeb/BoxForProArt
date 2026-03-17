@@ -475,6 +475,13 @@ if [ -f /usr/bin/nvidia-smi ]; then
     "max-file": "3"
   },
   "userland-proxy": false,
+  "default-ulimits": {
+    "nofile": {
+      "Name": "nofile",
+      "Hard": 65536,
+      "Soft": 65536
+    }
+  },
   "runtimes": {
     "nvidia": {
       "path": "/usr/bin/nvidia-container-runtime",
@@ -505,7 +512,14 @@ else
     "max-size": "100m",
     "max-file": "3"
   },
-  "userland-proxy": false
+  "userland-proxy": false,
+  "default-ulimits": {
+    "nofile": {
+      "Name": "nofile",
+      "Hard": 65536,
+      "Soft": 65536
+    }
+  }
 }
 EOF
 fi

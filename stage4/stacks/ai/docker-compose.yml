@@ -59,7 +59,7 @@ services:
           sleep 40 && \
           while true; do \
             curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "qwen3.5:27b-q8_0", "options": {"num_ctx": 32768}}' ; \
-            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "qwen3-embedding:8b", "options": {"num_ctx": 8192}}' ; \
+            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "bge-m3:latest", "options": {"num_ctx": 8192}}' ; \
             sleep 900; \
           done
     stop_grace_period: 20s
@@ -216,6 +216,12 @@ services:
       - proxy_app
       - internal
     stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail http://localhost:8080/health | grep -q '\"status\":true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 480s
     deploy:
       labels:
         shepherd.autoupdate: "true"

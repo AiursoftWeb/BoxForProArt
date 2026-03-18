@@ -9,9 +9,7 @@ services:
     environment:
       # Optional: If you want to require authentication for API calls, set this in your .env
       - OCR_ACCESS_TOKEN={{OCR_ACCESS_TOKEN}}
-      - OMP_NUM_THREADS=4
-      - MKL_NUM_THREADS=4
-      - CPU_NUM_THREADS=4
+      - USE_GPU=true # Set to false to force CPU mode
     networks:
       - proxy_app
       - internal

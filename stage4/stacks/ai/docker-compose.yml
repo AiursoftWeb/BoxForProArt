@@ -57,7 +57,7 @@ services:
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
       - AppSettings__AuthProvider=OIDC
-      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama_gateway
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama-gateway
       - AppSettings__OIDC__ClientId={{OLLAMA_GATEWAY_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{OLLAMA_GATEWAY_CLIENT_SECRET}}
     networks:

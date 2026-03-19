@@ -60,6 +60,8 @@ services:
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama-gateway
       - AppSettings__OIDC__ClientId={{OLLAMA_GATEWAY_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{OLLAMA_GATEWAY_CLIENT_SECRET}}
+      - Clickhouse__Enabled=true
+      - Clickhouse__ConnectionString=Host=clickhouse;Protocol=http;Port=8123;User=default;Password=123456;Database=default
     networks:
       - proxy_app
       - internal

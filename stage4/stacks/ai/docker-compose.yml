@@ -45,96 +45,58 @@ services:
         delay: 5s
         max_attempts: 3
 
-  ollama-warmup:
+  ollama-gateway-app:
     depends_on:
-      - ollama-server
-    image: hub.aiursoft.com/alpine
-    networks: 
-      - internal
-    entrypoint:
-      - "/bin/sh"
-      - "-c"
-      - |
-          apk add curl && \
-          sleep 40 && \
-          while true; do \
-            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "qwen3.5:27b-q8_0", "options": {"num_ctx": 32768}}' ; \
-            curl -s -o /dev/null http://ollama-server:11434/api/generate -d '{"model": "bge-m3:latest", "options": {"num_ctx": 8192}}' ; \
-            sleep 900; \
-          done
-    stop_grace_period: 20s
-    deploy:
-      labels:
-        shepherd.autoupdate: "true"
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-      update_config:
-        order: start-first
-        delay: 5s
-
-  ollama-gateway-db:
-    image: hub.aiursoft.com/mysql
+      - ollama-gateway-db
+    image: hub.aiursoft.com/aiursoft/ollamagateway
     volumes:
-      - gateway-db:/var/lib/mysql
+      - ollama-gateway-aspnet:/data/.aspnet/
+      - ollama-gateway-files:/data/files
     environment:
-      - MYSQL_RANDOM_ROOT_PASSWORD=true
-      - MYSQL_DATABASE=chat
-      - MYSQL_USER=chat
-      - MYSQL_PASSWORD=<chat_password>
+      - ConnectionStrings__DefaultConnection=Server=ollama-gateway-db;Database=ollama_gateway;Uid=ollama_gateway;Pwd=<ollama_gateway_password>;
+      - ConnectionStrings__DbType=MySql
+      - Storage__Path=/data/files
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama_gateway
+      - AppSettings__OIDC__ClientId={{OLLAMA_GATEWAY_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{OLLAMA_GATEWAY_CLIENT_SECRET}}
     networks:
+      - proxy_app
       - internal
     stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --silent"]
-      start_period: 20s
-      interval: 30s
-      retries: 5
-      timeout: 5s
     deploy:
       labels:
         shepherd.autoupdate: "true"
       resources:
         limits:
-          cpus: '4.0'
-          memory: 8G
+          cpus: '2.0'
+          memory: 2G
       update_config:
         order: stop-first
         delay: 60s
 
-  ollama-gateway:
-    depends_on:
-      - ollama-gateway-db
-      - ollama-warmup
-    image: hub.aiursoft.com/aiursoft/gptgateway
+  ollama-gateway-db:
+    image: hub.aiursoft.com/mysql
     volumes:
-      - gateway-data:/data/files
-      - gateway-aspnet:/data/.aspnet
+      - ollama-gateway-db:/var/lib/mysql
     environment:
-      - ConnectionStrings__DefaultConnection=Server=ollama-gateway-db;Database=chat;Uid=chat;Pwd=<chat_password>;
-      - ConnectionStrings__DbType=MySql
-      - Storage__Path=/data/files
-      - Underlyings__Ollama__Instance=http://ollama-server:11434/
-      - BingSearchAPIKey={{BING_SEARCH_KEY}}
-      - ApiKey={{OLLAMA_GATEWAY_API_KEY}}
-      - Clickhouse__Enabled=true
-      - Clickhouse__ConnectionString=Host=clickhouse;Protocol=http;Port=8123;User=default;Password=123456;Database=default
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=ollama_gateway
+      - MYSQL_USER=ollama_gateway
+      - MYSQL_PASSWORD=<ollama_gateway_password>
     networks:
       - internal
-      - proxy_app
-      - clickhouse_net
-    stop_grace_period: 20s
+    stop_grace_period: 60s
     deploy:
       labels:
         shepherd.autoupdate: "true"
       resources:
         limits:
-          cpus: '4.0'
+          cpus: '2.0'
           memory: 4G
       update_config:
-        order: start-first
-        delay: 5s
+        order: stop-first
+        delay: 60s
 
   code-runner:
     image: hub.aiursoft.com/aiursoft/cpprunner
@@ -183,10 +145,10 @@ services:
   open-webui:
     depends_on:
       - mcpo
-      - ollama-gateway
+      - ollama-gateway-app
     image: hub.aiursoft.com/ghcr.io/open-webui/open-webui:main
     environment:
-      - 'OLLAMA_BASE_URL=http://ollama-gateway:5000/'
+      - 'OLLAMA_BASE_URL=http://ollama-gateway-app:5000/'
       - ENABLE_OPENAI_API=False
       - WEBUI_AUTH=True
       - ENABLE_LOGIN_FORM=False
@@ -254,24 +216,6 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ai/code-runner/aspnet
-  gateway-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ai/gateway/data
-  gateway-aspnet:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ai/gateway/aspnet
-  gateway-db:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ai/gateway/db
   mcpo-data:
     driver: local
     driver_opts:
@@ -284,3 +228,21 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ai/open-webui/data
+  ollama-gateway-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ollama-gateway-data/files
+  ollama-gateway-aspnet:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ollama-gateway-data/aspnet
+  ollama-gateway-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ollama-gateway-data/mysql

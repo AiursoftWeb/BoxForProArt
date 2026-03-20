@@ -16,7 +16,7 @@ services:
       - PrBot__Servers__0__Token={{NUGET_NINJA_CONTRIBUTE_TOKEN}}
       - PrBot__Servers__0__OnlyUpdate=false
       - PrBot__LocalizationEnabled=true
-      - PrBot__OllamaApiEndpoint=https://ollama.aiursoft.com/api/chat/completions
+      - PrBot__OllamaApiEndpoint=https://ollama.aiursoft.com/api/chat
       - PrBot__OllamaModel=qwen3.5:27b-q8_0
       - PrBot__OllamaApiKey={{OLLAMA_GATEWAY_API_KEY}}
       - PrBot__LocalizationConcurrentRequests=2

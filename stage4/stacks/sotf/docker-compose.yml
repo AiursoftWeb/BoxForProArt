@@ -7,8 +7,8 @@ services:
       - ALWAYS_UPDATE_ON_START=true
     volumes:
       - userdata:/sonsoftheforest/userdata
-      - game:/sonsoftheforest/game
-      - steamcmd:/sonsoftheforest/steamcmd
+      - game:/sonsoftheforest          # <--- 核心修复1：直接挂载到游戏根目录
+      - steamcmd:/home/steam/steamcmd  # <--- 核心修复2：指向真实的 steamcmd 路径
     networks:
       - frp_net
     ports:

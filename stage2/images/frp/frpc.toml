@@ -54,34 +54,3 @@ remotePort = 2202
 
 transport.useCompression = true
 transport.bandwidthLimit = "3MB"
-
-# Sons of the Forest - Game Port
-[[proxies]]
-name = "sotf_game"
-type = "udp"
-localIP = "sotf_sotf-server"
-localPort = 8766
-remotePort = 8766
-transport.useEncryption = false
-transport.useCompression = false
-
-# Sons of the Forest - Query Port
-[[proxies]]
-name = "sotf_query"
-type = "udp"
-localIP = "sotf_sotf-server"
-localPort = 27016
-remotePort = 27016
-transport.useEncryption = false
-transport.useCompression = false
-
-# Sons of the Forest - Blob Sync Port
-[[proxies]]
-name = "sotf_blob"
-type = "udp"
-localIP = "sotf_sotf-server"
-localPort = 9700
-remotePort = 9700
-transport.useEncryption = false
-transport.useCompression = false
-

@@ -34,24 +34,12 @@ services:
         delay: 60s
 
 volumes:
-  userdata:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/gaming/sotf-data/userdata
   game:
     driver: local
     driver_opts:
       type: none
       o: bind
       device: /swarm-vol/gaming/sotf-data/game
-  steamcmd:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/gaming/sotf-data/steamcmd
 
 networks:
   frp_net:

@@ -5,6 +5,10 @@ services:
     image: hub.aiursoft.com/jammsen/sons-of-the-forest-dedicated-server:latest
     environment:
       - ALWAYS_UPDATE_ON_START=true
+      - SKIP_NETWORK_ACCESSIBILITY_TEST=true
+      - FILTER_SHADER_AND_MESH_AND_WINE_DEBUG=true  # <--- 官方新增：彻底屏蔽烦人的显卡/声卡报错日志
+      - PUID=1000
+      - PGID=1000
     volumes:
       - game:/sonsoftheforest          # <--- 核心修复1：直接挂载到游戏根目录
     networks:

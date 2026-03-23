@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  sotf-server:
+    image: hub.aiursoft.com/jammsen/sons-of-the-forest-dedicated-server:latest
+    environment:
+      - ALWAYS_UPDATE_ON_START=true
+    volumes:
+      - userdata:/sonsoftheforest/userdata
+      - game:/sonsoftheforest/game
+      - steamcmd:/sonsoftheforest/steamcmd
+    networks:
+      - frp_net
+    ports:
+      # These ports are for internal use. For external, FRP will handle it.
+      - target: 8766
+        published: 8766
+        protocol: udp
+        mode: host
+      - target: 27016
+        published: 27016
+        protocol: udp
+        mode: host
+      - target: 9700
+        published: 9700
+        protocol: udp
+        mode: host
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 16G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  userdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gaming/sotf-data/userdata
+  game:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gaming/sotf-data/game
+  steamcmd:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/gaming/sotf-data/steamcmd
+
+networks:
+  frp_net:
+    external: true

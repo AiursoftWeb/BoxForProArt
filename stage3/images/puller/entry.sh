@@ -321,6 +321,7 @@ images=(
     "influxdb"
     "influxdb:1.8"
     "indexyz/mikutap"
+    "jammsen/sons-of-the-forest-dedicated-server"
     "jellyfin/jellyfin"
     "jgraph/drawio:24.7.17"
     "joxit/docker-registry-ui"

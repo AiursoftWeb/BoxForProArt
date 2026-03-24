@@ -295,19 +295,6 @@ EOF
     fi
 }
 
-function clean_up_docker() {
-    # if there is no stack deployed, run the system prune command
-    # else, log and skip cleaning.
-    if [ $(sudo docker stack ls --format '{{.Name}}' | wc -l) -eq 0 ]; then
-        print_warn "Seems running on a new cluster. Cleaning up docker..."
-        sudo docker system prune -a --volumes -f
-        sudo docker network prune -f
-        #sudo docker builder prune -f
-    else
-        print_ok "There are stacks already deployed and running. Skip cleaning."
-    fi
-}
-
 function create_secret() {
     local secret_name=$1
     if ! sudo docker secret ls --format '{{.Name}}' | grep -Fxq "$secret_name"; then
@@ -386,9 +373,6 @@ better_performance
 # Setup docker auto clean
 print_ok "Setting up docker auto clean..."
 setup_docker_auto_clean
-
-print_ok "Cleaning up docker (if no stack deployed)..."
-clean_up_docker
 
 print_ok "Deleting zombie vxlan interfaces..."
 for interface in $(ip -d link show | grep vx | grep DOWN | awk -F': ' '{print $2}'); do

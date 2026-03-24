@@ -17,7 +17,8 @@ COPY entry.sh start.sh source_updated.py /app/
 
 # Avoid cache invalidation for stable layers above, download regctl with freshness check
 #ADD "https://api.github.com/repos/regclient/regclient/commits?per_page=1" latest_commit
-RUN curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o /usr/local/bin/regctl && \
+RUN (curl -m 50 -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o /usr/local/bin/regctl || \
+    (rm -f /usr/local/bin/regctl && curl -L https://git.aiursoft.com/PublicVault/regclient/releases/download/mirror/regctl-linux-amd64 -o /usr/local/bin/regctl)) && \
     chmod 755 /usr/local/bin/regctl
 
 # Configure everything in one layer: permissions, logs, env, crontab

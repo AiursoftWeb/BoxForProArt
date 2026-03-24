@@ -13,7 +13,8 @@ WORKDIR /app
 COPY . .
 
 # Install regctl
-RUN curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 >regctl && \
+RUN (curl -m 50 -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o regctl || \
+    (rm -f regctl && curl -L https://git.aiursoft.com/PublicVault/regclient/releases/download/mirror/regctl-linux-amd64 -o regctl)) && \
     chmod 755 regctl && \
     mv regctl /usr/local/bin/
 

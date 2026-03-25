@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  app:
+    depends_on:
+      - db
+    image: hub.aiursoft.com/aiursoft/aiursoft/polls
+    volumes:
+      - polls-aspnet:/data/.aspnet/
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=polls;Uid=polls;Pwd=<polls_password>;
+      - ConnectionStrings__DbType=MySql
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/polls
+      - AppSettings__OIDC__ClientId={{POLLS_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{POLLS_CLIENT_SECRET}}
+    networks:
+      - proxy_app
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  db:
+    image: hub.aiursoft.com/mysql
+    volumes:
+      - polls-db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=polls
+      - MYSQL_USER=polls
+      - MYSQL_PASSWORD=<polls_password>
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  polls-aspnet:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/polls-data/aspnet
+  polls-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/polls-data/mysql
+
+networks:
+  proxy_app:
+    external: true
+  internal:
+    driver: overlay

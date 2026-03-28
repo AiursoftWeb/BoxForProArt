@@ -36,7 +36,7 @@ mirror_image "aiursoft/baget"
 
 # The tag need to be updated regularly.
 echo "Mirroring GoAuthentik server..."
-mirror_image "ghcr.io/goauthentik/server:2025.12.3"
+mirror_image "ghcr.io/goauthentik/server:2026.2.1"
 
 echo "Mirroring npm Verdaccio..."
 mirror_image "verdaccio/verdaccio"

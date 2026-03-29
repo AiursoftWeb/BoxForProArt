@@ -182,6 +182,7 @@ services:
       - OAUTH_UPDATE_NAME_ON_LOGIN=True
       - OAUTH_UPDATE_PICTURE_ON_LOGIN=True
       - OAUTH_UPDATE_EMAIL_ON_LOGIN=True
+      - OAUTH_ALLOWED_ROLES=user
     volumes:
       - open-webui-data:/app/backend/data
     networks:

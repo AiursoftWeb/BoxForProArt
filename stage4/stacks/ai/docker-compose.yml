@@ -60,11 +60,16 @@ services:
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama-gateway
       - AppSettings__OIDC__ClientId={{OLLAMA_GATEWAY_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{OLLAMA_GATEWAY_CLIENT_SECRET}}
+      - Logging__Clickhouse__Enabled=true
+      - Logging__Clickhouse__ConnectionString=Host=clickhouse;User=default;Password=123456;Database=AspNetCoreLogs
+      - Logging__Clickhouse__TableName=OllamaGatewayLogs
       - Clickhouse__Enabled=true
       - Clickhouse__ConnectionString=Host=clickhouse;Protocol=http;Port=8123;User=default;Password=123456;Database=default
+      - Clickhouse__TableName=RequestLogs
     networks:
       - proxy_app
       - internal
+      - clickhouse_net
     stop_grace_period: 60s
     deploy:
       labels:

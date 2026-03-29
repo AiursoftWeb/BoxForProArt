@@ -179,6 +179,9 @@ services:
       - OAUTH_CLIENT_SECRET={{OPENWEB_CLIENT_SECRET}}
       - 'OAUTH_SCOPES=openid email profile'
       - OPENID_REDIRECT_URI=https://openweb.aiursoft.com/oauth/oidc/callback
+      - OAUTH_UPDATE_NAME_ON_LOGIN=True
+      - OAUTH_UPDATE_PICTURE_ON_LOGIN=True
+      - OAUTH_UPDATE_EMAIL_ON_LOGIN=True
     volumes:
       - open-webui-data:/app/backend/data
     networks:

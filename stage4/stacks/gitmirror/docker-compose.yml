@@ -16,9 +16,13 @@ services:
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/gitmirror
       - AppSettings__OIDC__ClientId={{GITMIRROR_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{GITMIRROR_CLIENT_SECRET}}
+      - Logging__Clickhouse__Enabled=true
+      - Logging__Clickhouse__ConnectionString=Host=clickhouse;User=default;Password=123456;Database=AspNetCoreLogs
+      - Logging__Clickhouse__TableName=GitMirrorServerLogs
     networks:
       - proxy_app
       - internal
+      - clickhouse_net
     stop_grace_period: 60s
     deploy:
       labels:
@@ -76,6 +80,8 @@ volumes:
 
 networks:
   proxy_app:
+    external: true
+  clickhouse_net:
     external: true
   internal:
     driver: overlay

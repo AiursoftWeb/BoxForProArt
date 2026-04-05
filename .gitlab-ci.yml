@@ -5,9 +5,9 @@ lint-compose:
   stage: lint
   image: python:3.13
   before_script:
-    - python -m pip install --disable-pip-version-check pyyaml
+    - python3 -m pip install --disable-pip-version-check pyyaml
   script:
-    - python ./lint.py
+    - python3 ./lint.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

@@ -1,7 +1,44 @@
 #!/usr/bin/env python3
 import os
+import re
 import sys
 import yaml
+
+
+def parse_duration_seconds(value) -> float | None:
+    """
+    解析 docker compose duration 字符串，返回秒数。
+    支持常见单位：h、m、s、ms、us、ns。
+    """
+    if not isinstance(value, str):
+        return None
+
+    text = value.strip()
+    if not text:
+        return None
+
+    matches = re.findall(r'(\d+(?:\.\d+)?)(h|ms|us|ns|m|s)', text)
+    if not matches:
+        return None
+
+    rebuilt = ''.join(f'{number}{unit}' for number, unit in matches)
+    if rebuilt != text:
+        return None
+
+    total_seconds = 0.0
+    unit_scale = {
+        'h': 3600,
+        'm': 60,
+        's': 1,
+        'ms': 1e-3,
+        'us': 1e-6,
+        'ns': 1e-9,
+    }
+
+    for number, unit in matches:
+        total_seconds += float(number) * unit_scale[unit]
+
+    return total_seconds
 
 
 def is_stateless(conf: dict) -> bool:
@@ -42,8 +79,9 @@ def validate_service(name: str, conf: dict):
             errors.append("deploy.update_config.delay 应为 '5s'")
     else:
         # 有状态服务规范
-        if conf.get('stop_grace_period') != '60s':
-            errors.append("stop_grace_period 应为 '60s'")
+        stop_grace_period = parse_duration_seconds(conf.get('stop_grace_period'))
+        if stop_grace_period is None or stop_grace_period < 60:
+            errors.append("stop_grace_period 应大于等于 '60s'")
         if upd.get('order') != 'stop-first':
             errors.append("deploy.update_config.order 应为 'stop-first'")
         if upd.get('delay') != '60s':

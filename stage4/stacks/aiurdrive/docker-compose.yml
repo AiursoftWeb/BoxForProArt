@@ -23,7 +23,7 @@ services:
       - proxy_app
       - internal
       - clickhouse_net
-    stop_grace_period: 60s
+    stop_grace_period: 20s
     deploy:
       labels:
         shepherd.autoupdate: "true"
@@ -32,8 +32,8 @@ services:
           cpus: '2.0'
           memory: 2G
       update_config:
-        order: stop-first
-        delay: 60s
+        order: start-first
+        delay: 5s
 
   db:
     image: hub.aiursoft.com/mysql

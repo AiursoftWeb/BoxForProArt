@@ -415,6 +415,7 @@ images=(
     "vaultwarden/server:testing"
     "verdaccio/verdaccio"
     "vikunja/vikunja"
+    "vllm/vllm-openai"
     "vminnovations/typescript-sdk:16-latest"
     "wolveix/satisfactory-server:latest"
     "wordpress:php8.3-fpm-alpine"

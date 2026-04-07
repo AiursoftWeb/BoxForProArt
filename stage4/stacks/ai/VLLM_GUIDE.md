@@ -1,103 +1,81 @@
-# vLLM 部署与调优指南 (从 Ollama 迁移)
+# vLLM 部署与调优实战指南 (MoE 架构优化版)
 
-vLLM 是一个高性能、低延迟的 LLM 推理引擎。与 Ollama 不同，vLLM 的绝大部分调优是通过启动命令（CLI Flags）完成的，而不是环境变量。
-
-## 1. 核心参数对比 (Ollama vs vLLM)
-
-如果你习惯了 Ollama 的环境变量，下表可以帮助你快速定位 vLLM 的对应设置：
-
-| 功能描述 | Ollama 环境变量 | vLLM 命令行参数 | 推荐值 (RTX 4090) |
-| :--- | :--- | :--- | :--- |
-| **上下文长度** | `OLLAMA_NUM_CTX` | `--max-model-len` | `4096` 或 `8192` |
-| **显存占用率** | N/A | `--gpu-memory-utilization` | `0.8` (留 20% 给桌面/系统) |
-| **并发请求数** | `OLLAMA_NUM_PARALLEL` | `--max-num-seqs` | `256` (vLLM 处理并发极强) |
-| **对话缓存** | N/A | `--enable-prefix-caching` | `True` (长对话大幅提速) |
-| **模型常驻** | `OLLAMA_KEEP_ALIVE` | (默认常驻) | 不需要额外设置 |
-| **Flash Attention**| `OLLAMA_FLASH_ATTENTION`| (默认开启) | 不需要额外设置 |
+本指南针对 `Qwen3.5-35B-A3B` 这种 **MoE (Mixture of Experts)** 架构，在双卡 RTX 3090 (48GB) 非对称显存环境下的极限部署提供 SOP。
 
 ---
 
-## 2. Docker Compose 集成示例
-
-建议在你的 `docker-compose.yml` 中按照以下方式添加 vLLM 服务，替换原本的 `ollama-server`：
-
-```yaml
-services:
-  vllm-server:
-    image: hub.aiursoft.com/vllm/vllm-openai:latest
-    volumes:
-      - /swarm-vol/ai/vllm/root:/root/.cache/huggingface
-    ports:
-      - "8000:8000"
-    restart: always
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # 所有的调优参数都写在 command 里
-    command: >
-      Qwen/Qwen3.5-9B
-      --max-model-len 4096
-      --gpu-memory-utilization 0.8
-      --enable-prefix-caching
-      --trust-remote-code
-      --max-num-seqs 256
-      --reasoning-parser qwen3
-```
+## 1. 核心纠错：MoE 架构的显存真相
+*   **权重体积**：35B 的 **AWQ (4-bit)** 量化版本权重约 **18GB**。
+*   **KV Cache 特性**：由于是 `A3B`（激活 3B），其 KV 缓存需求极小。
+    *   **32K 上下文** 仅占用约 **2.68GB**。
+    *   **结论**：在剩余 28GB 的对称可用空间内，**完全不需要压缩 KV 缓存**，可以直接跑满 **32K 上下文**，且保持原生 FP16/BF16 精度以确保输出质量。
 
 ---
 
-## 3. 进阶调优参数说明
+## 2. 明日实战：双卡 RTX 3090 (48GB) 极限部署策略
 
-- **`--gpu-memory-utilization`**: 
-  - **作用**：控制 vLLM 预分配显存的比例。
-  - **建议**：在有显卡驱动桌面环境（如 Gnome）的机器上，建议设置为 `0.8`。如果纯服务器环境，可设为 `0.9` 或 `0.95`。
-- **`--max-model-len`**: 
-  - **作用**：限制模型处理的最大 Token 总量。
-  - **注意**：显存占用 = 模型权重 + (上下文长度 * 并发数)。如果 OOM，优先调小这个值。
-- **`--enable-prefix-caching`**: 
-  - **作用**：开启前缀缓存。
-  - **场景**：在多轮对话中，前面的聊天记录会被缓存，后续回复不再需要重复计算，首字延迟（TTFT）极低。
-- **`--kv-cache-dtype`**: 
-  - **作用**：设置 KV 缓存的数据类型（如 `fp8`）。
-  - **建议**：如果显存非常吃紧，设置为 `fp8` 可以节省近一半的 KV 缓存显存，但精度有微小损失。
+### 2.1 业务约束与显存精算
+*   **约束**：GPU 0 已被 RAG/TTS 占用 10GB（剩余 14GB）。
+*   **对称死锁**：vLLM 张量并行 (`--tensor-parallel-size 2`) 强制镜像。
+*   **可用池**：$14\text{GB} \times 2 = 28\text{GB}$。
+*   **分配比例**：$28\text{GB} / 48\text{GB} \approx 0.58$。为留出系统 Buffer，建议设为 **0.56**。
 
----
+### 2.2 部署命令 (针对最佳性能的 AWQ 格式)
+**推荐方案**：下载 `Qwen/Qwen3.5-35B-A3B-Instruct-AWQ` 以获得 vLLM 原生硬件加速。
 
-## 4. 如何通过 OpenAI API 调用
-
-vLLM 提供完全兼容 OpenAI 的接口，Base URL 为 `http://localhost:8000/v1`。
-
-### Python 示例
-```python
-from openai import OpenAI
-
-client = OpenAI(base_url="http://localhost:8000/v1", api_key="EMPTY")
-
-response = client.chat.completions.create(
-    model="Qwen/Qwen3.5-9B",
-    messages=[{"role": "user", "content": "你好，请自我介绍"}]
-)
-print(response.choices[0].message.content)
-```
-
-### Curl 示例
 ```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "Qwen/Qwen3.5-9B",
-    "messages": [{"role": "user", "content": "1+1=?"}]
-  }'
+sudo docker run -d --name vllm-35b-moe \
+  --restart always \
+  --gpus all \
+  --ipc=host \
+  -v /swarm-vol/ai/vllm/root:/root/.cache/huggingface \
+  -p 8000:8000 \
+  -e HF_ENDPOINT=https://hf-mirror.com \
+  hub.aiursoft.com/vllm/vllm-openai:latest \
+  Qwen/Qwen3.5-35B-A3B-Instruct-AWQ \
+  --tensor-parallel-size 2 \
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.56 \
+  --enforce-eager \
+  --trust-remote-code \
+  --enable-prefix-caching
 ```
+
+### 2.3 备选方案：部署 GGUF 格式 (Q4_0/Q4_K_M)
+如果手里只有 GGUF 文件，需指定模型文件路径：
+
+```bash
+# 假设模型文件在 /root/.cache/huggingface/qwen35.gguf
+sudo docker run -d --name vllm-35b-gguf \
+  --restart always \
+  --gpus all \
+  --ipc=host \
+  -v /swarm-vol/ai/vllm/root:/root/.cache/huggingface \
+  -p 8000:8000 \
+  hub.aiursoft.com/vllm/vllm-openai:latest \
+  --model /root/.cache/huggingface/qwen35.gguf \
+  --tokenizer Qwen/Qwen3.5-35B-A3B-Instruct \
+  --tensor-parallel-size 2 \
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.56 \
+  --enforce-eager
+```
+
+### 2.4 参数深度解析
+1.  **`--ipc=host`**：彻底解决多卡并行时 NCCL 库在容器内共享内存不足导致的崩溃，比手动指定 `shm-size` 更稳。
+2.  **`--max-model-len 32768`**：MoE 架构福利。即便显存剩余不多，也能从容处理 32K 文本，无需阉割。
+3.  **取消 `--kv-cache-dtype fp8`**：显存绰绰有余（约 8GB 空闲），不开启 FP8 压缩以保留最高推理精度。
+4.  **`--gpu-memory-utilization 0.56`**：精准避让 GPU 0 上预留给 RAG/TTS 的 10GB 空间。
 
 ---
 
-## 5. 常见问题排查
+## 3. 架构预警：何时该切回 Ollama？
 
-1. **CUDA Out of Memory**: 检查是否还有其他容器（如 Ollama）占用显存。使用 `nvidia-smi` 查看。
-2. **模型下载慢**: 确保挂载了 `/swarm-vol/ai/vllm/root` 卷，这样模型只需下载一次。
-3. **Open WebUI 连接**: 在 Open WebUI 中，将 `OLLAMA_BASE_URL` 替换为 vLLM 的地址，或者添加新的 OpenAI 模型提供商地址 `http://vllm-server:8000/v1`。
+*   **场景**：如果需要处理 **128K 以上** 的超长上下文，或者 GPU 0 的预留空间进一步被挤压到不足 12GB。
+*   **策略**：切回 Ollama 开启 **非对称分层**。Ollama 能把两张卡剩下的显存拼凑在一起使用（14GB + 24GB = 38GB），而 vLLM 只能浪费掉那 10GB 的差异。
+
+---
+
+## 4. 4090 (24GB) 单卡经验
+*   **9B BF16**：完美运行。
+*   **35B AWQ**：单卡极其吃力，建议仅在双卡环境下使用张量并行部署。

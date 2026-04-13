@@ -415,6 +415,7 @@ images=(
     "vaultwarden/server:testing"
     "verdaccio/verdaccio"
     "vikunja/vikunja"
+    "vikunja/vikunja:unstable"
     "vllm/vllm-openai"
     "vminnovations/typescript-sdk:16-latest"
     "wolveix/satisfactory-server:latest"

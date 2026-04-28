@@ -3,7 +3,9 @@
 	email anduin@aiursoft.com
 	
 	# Global ACME configuration for Let's Encrypt DNS-01 challenge
-	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN} {
+		resolver 1.1.1.1
+	}
 
 	log {
 		format json

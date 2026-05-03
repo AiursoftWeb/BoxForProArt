@@ -362,6 +362,7 @@ images=(
     "nvidia/cuda:11.8.0-devel-ubuntu22.04"
     "nvidia/cuda:12.6.2-devel-ubuntu24.04"
     "nvidia/cuda:12.8.1-devel-ubuntu24.04"
+    "nvidia/cuda:13.2.1-devel-ubuntu24.04"
     "ollama/ollama"
     "oven/bun:slim"
     "owncast/owncast"

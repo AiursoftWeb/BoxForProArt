@@ -118,7 +118,7 @@ services:
       resources:
         limits:
           cpus: '6.0'
-          memory: 12G
+          memory: 24G
       update_config:
         order: stop-first
         delay: 60s

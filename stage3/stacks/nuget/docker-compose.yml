@@ -27,7 +27,7 @@ services:
         delay: 60s
 
   db:
-    image: localhost:8080/public_mirror/mysql
+    image: localhost:8080/public_mirror/mysql:9.7.0
     volumes:
       - db:/var/lib/mysql
     environment:

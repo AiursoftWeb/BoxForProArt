@@ -36,7 +36,7 @@ services:
         delay: 5s
 
   db:
-    image: hub.aiursoft.com/mysql
+    image: hub.aiursoft.com/mysql:9.7.0
     volumes:
       - gitmirror-db:/var/lib/mysql
     environment:

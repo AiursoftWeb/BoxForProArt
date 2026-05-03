@@ -38,7 +38,7 @@ services:
         order: start-first
         delay: 5s
   db:
-    image: hub.aiursoft.com/mysql
+    image: hub.aiursoft.com/mysql:9.7.0
     volumes:
       - cpprunner-db:/var/lib/mysql
     environment:

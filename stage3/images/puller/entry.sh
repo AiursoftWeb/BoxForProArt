@@ -342,6 +342,7 @@ images=(
     "minio/minio"
     "mongo"
     "mwader/postfix-relay"
+    "mysql:9.7.0"
     "mysql"
     "neosmemo/memos:stable"
     "nextcloud"

@@ -622,6 +622,9 @@ sudo docker push localhost:8080/box_starting/local_zot:latest
 print_ok "Building local puller..."
 sudo docker build ./stage3/images/puller -t localhost:8080/box_starting/local_puller:latest
 sudo docker push localhost:8080/box_starting/local_puller:latest
+print_ok "Building local puller_cn..."
+sudo docker build ./stage3/images/puller_cn -t localhost:8080/box_starting/local_puller_cn:latest
+sudo docker push localhost:8080/box_starting/local_puller_cn:latest
 
 print_ok "Building local aptmirror..."
 sudo docker build ./stage3/images/aptmirror -t localhost:8080/box_starting/local_aptmirror:latest

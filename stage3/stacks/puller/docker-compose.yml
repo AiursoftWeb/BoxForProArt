@@ -26,7 +26,7 @@ services:
         delay: 5s
 
   downloader_cn:
-    image: localhost:8080/box_starting/local_puller
+    image: localhost:8080/box_starting/local_puller_cn
     environment:
       - FROM_REGISTRY=hub.aiursoft.com
       - MIRROR_TARGET=hub.aiursoft.cn

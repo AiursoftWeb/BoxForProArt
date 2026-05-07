@@ -28,6 +28,7 @@ services:
 
   db:
     image: localhost:8080/public_mirror/mysql:9.7.0
+    command: --skip-log-bin
     volumes:
       - db:/var/lib/mysql
     environment:

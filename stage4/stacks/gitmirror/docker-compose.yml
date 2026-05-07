@@ -37,6 +37,7 @@ services:
 
   db:
     image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
     volumes:
       - gitmirror-db:/var/lib/mysql
     environment:

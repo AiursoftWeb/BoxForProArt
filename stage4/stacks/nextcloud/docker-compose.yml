@@ -98,6 +98,7 @@ services:
 
   nextclouddb:
     image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     networks: 
       - internal

@@ -39,6 +39,7 @@ services:
         delay: 5s
   db:
     image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
     volumes:
       - cpprunner-db:/var/lib/mysql
     environment:

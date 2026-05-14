@@ -74,8 +74,7 @@
 			"enable": true
 		},
 		"scrub": {
-			"enable": true,
-			"interval": "96h"
+			"enable": false
 		},
 		"ui": {
 			"enable": true

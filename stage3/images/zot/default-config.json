@@ -4,7 +4,7 @@
 		"rootDirectory": "/data",
 		"dedupe": true,
 		"gc": true,
-		"gcInterval": "48h",
+		"gcInterval": "72h",
 		"retention": {
 			"dryRun": false,
 			"delay": "0h",
@@ -71,14 +71,11 @@
 	},
 	"extensions": {
 		"search": {
-			"enable": true,
-			"cve": {
-				"updateInterval": "24h"
-			}
+			"enable": true
 		},
 		"scrub": {
 			"enable": true,
-			"interval": "72h"
+			"interval": "96h"
 		},
 		"ui": {
 			"enable": true

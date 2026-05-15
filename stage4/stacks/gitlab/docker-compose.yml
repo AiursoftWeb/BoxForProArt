@@ -187,6 +187,39 @@ services:
         order: start-first
         delay: 5s
 
+  agent-bot:
+    image: hub.aiursoft.com/aiursoft/agentbot:latest
+    volumes:
+      - agent-bot-workspace:/workspace
+      - agent-bot-log:/logs
+    environment:
+      - AgentBot__Engine=Claude
+      - AgentBot__Model=deepseek-v4-pro
+      - AgentBot__ApiKey={{AGENT_BOT_API_KEY}}
+      - AgentBot__ApiEndpoint=https://api.deepseek.com/anthropic
+      - AgentBot__WorkspaceFolder=/workspace
+      - Servers__0__Provider=GitLab
+      - Servers__0__EndPoint=https://gitlab.aiursoft.com
+      - Servers__0__PushEndPoint=https://{0}@gitlab.aiursoft.com
+      - Servers__0__DisplayName=Agent Bot
+      - Servers__0__UserName=gemini-bot
+      - Servers__0__UserEmail=agent@aiursoft.com
+      - Servers__0__ContributionBranch=users/agent/auto-fix-issue
+      - Servers__0__Token={{AGENT_BOT_GITLAB_TOKEN}}
+    networks:
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
 volumes:
   gitlab-data:
     driver: local
@@ -206,6 +239,18 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/gitlab/config
+  agent-bot-workspace:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/agent-bot/workspace
+  agent-bot-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/agent-bot/log
 
 networks:
   proxy_app:

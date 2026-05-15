@@ -76,8 +76,8 @@ services:
         shepherd.autoupdate: "true"
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2G
+          cpus: '6.0'
+          memory: 8G
       update_config:
         order: start-first
         delay: 5s

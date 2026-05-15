@@ -194,9 +194,9 @@ services:
       - agent-bot-log:/logs
     environment:
       - AgentBot__Engine=Claude
-      - AgentBot__Model=deepseek-v4-pro
+      - AgentBot__Model=aiursoft-super:latest
       - AgentBot__ApiKey={{AGENT_BOT_API_KEY}}
-      - AgentBot__ApiEndpoint=https://api.deepseek.com/anthropic
+      - AgentBot__ApiEndpoint=https://ollama.aiursoft.com
       - AgentBot__WorkspaceFolder=/workspace
       - Servers__0__Provider=GitLab
       - Servers__0__EndPoint=https://gitlab.aiursoft.com

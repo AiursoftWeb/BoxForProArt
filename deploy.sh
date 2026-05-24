@@ -167,7 +167,7 @@ better_performance() {
     sudo timedatectl set-timezone UTC
 
     print_ok "Setting up swap file equal to physical RAM size..."
-    curl -s https://gitlab.aiursoft.com/anduin/init-server/-/raw/master/autoswap.sh?ref_type=heads | sudo bash
+    curl -s https://raw.githubusercontent.com/Anduin2017/Init-Server/refs/heads/master/autoswap.sh | sudo bash
 }
 
 function setup_docker_auto_clean() {

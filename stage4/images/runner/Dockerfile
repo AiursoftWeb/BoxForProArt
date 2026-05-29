@@ -58,6 +58,7 @@ RUN pip install PyYAML
 RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
     dotnet tool install JetBrains.ReSharper.GlobalTools --global --configfile ./temp.config -v d || echo 'JB already installed.' && \
     dotnet tool install dotnet-reportgenerator-globaltool --global --configfile ./temp.config -v d || echo 'ReportGenerator already installed.' && \
+    dotnet tool install aiursoft.apkg.client --global --configfile ./temp.config -v d || echo 'apkg already installed.' && \
     rm ./temp.config
 
 # Node.js Global Tools

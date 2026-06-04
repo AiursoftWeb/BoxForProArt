@@ -34,6 +34,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       zip \
       unzip \
       tar \
+      gcc \
+      pkg-config \
+      libglib2.0-dev \
       docker.io \
       docker-buildx \
       qemu-user-static \

@@ -305,6 +305,7 @@ images=(
     "gitea/gitea"
     "gitlab/gitlab-ce"
     "gitlab/gitlab-ee"
+    "gitlab/gitlab-ee:19.0.1-ee.0"
     "golang"
     "golang:1.21.5"
     "grafana/grafana"

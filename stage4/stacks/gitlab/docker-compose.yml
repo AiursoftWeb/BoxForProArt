@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   gitlab:
-    image: hub.aiursoft.com/gitlab/gitlab-ee
+    image: hub.aiursoft.com/gitlab/gitlab-ee:19.0.1-ee.0
     ports:
       - target: 2202
         published: 2202

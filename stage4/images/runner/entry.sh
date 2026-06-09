@@ -49,7 +49,8 @@ gitlab-runner register \
     --env "CN_DOCKER_USERNAME=${CN_DOCKER_USERNAME}" \
     --env "CN_DOCKER_PASSWORD=${CN_DOCKER_PASSWORD}" \
     --env "LOCAL_NUGET_API_KEY=${LOCAL_NUGET_API_KEY}" \
-    --env "NUGET_API_KEY=${NUGET_API_KEY}"
+    --env "NUGET_API_KEY=${NUGET_API_KEY}" \
+    --env "APKG_DEV_API_KEY=${APKG_DEV_API_KEY}"
 
 echo "Ensuring global buildx builder for CI (as gitlab-runner)..."
 BUILDER_NAME="aiur-global-builder"

@@ -143,6 +143,7 @@ services:
       - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
+      - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
     networks:
       - internal
       - proxy_app
@@ -175,6 +176,7 @@ services:
       - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
+      - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
     networks:
       - internal
       - proxy_app

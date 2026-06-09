@@ -2,12 +2,6 @@ FROM localhost:8080/public_mirror/aiursoft/static
 
 RUN mkdir -p /data
 
-# Install ping
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      iputils-ping \
-      net-tools \
-      iproute2 && \
-    rm -rf /var/lib/apt/lists/*
 COPY static-mirror-cleanup /etc/cron.d/static-mirror-cleanup
 
 COPY cleanup.sh /usr/local/bin/cleanup.sh

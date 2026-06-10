@@ -55,6 +55,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
 
+# ARM64 cross-compilation toolchain for anduinos-deskmon
+RUN dpkg --add-architecture arm64 && \
+    apt update && \
+    apt install -y --no-install-recommends \
+      gcc-aarch64-linux-gnu \
+      libglib2.0-dev:arm64 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Python packages
 RUN pip install PyYAML
 

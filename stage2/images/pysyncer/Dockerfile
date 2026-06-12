@@ -26,7 +26,7 @@ ENV LOG_FILE=/data/caddy/logs/web.log \
     CLICKHOUSE_DATABASE=logs \
     CLICKHOUSE_TABLE=caddy_requests \
     BATCH_SIZE=1000 \
-    FLUSH_INTERVAL_SEC=2 \
+    FLUSH_INTERVAL_SEC=30 \
     TZ="UTC"
 
 CMD ["python", "/app/main.py"]

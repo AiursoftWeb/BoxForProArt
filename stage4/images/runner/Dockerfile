@@ -37,7 +37,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       libglib2.0-dev \
       docker.io \
       docker-buildx \
-      qemu-user-static \
+      qemu-user-binfmt-hwe \
       gzip \
       iputils-ping \
       net-tools \

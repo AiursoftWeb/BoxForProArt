@@ -54,6 +54,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       iproute2 \
       cargo \
       rustc \
+      rustup \
       libgtk-4-dev \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \

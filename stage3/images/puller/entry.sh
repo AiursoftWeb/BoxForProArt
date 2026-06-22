@@ -413,6 +413,7 @@ images=(
     "ubuntu:24.10"
     "ubuntu:25.04"
     "ubuntu:25.10"
+    "ubuntu:26.04"
     "valkey/valkey:8-bookworm"
     "vaultwarden/server"
     "vaultwarden/server:testing"

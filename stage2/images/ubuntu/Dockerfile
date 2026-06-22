@@ -1,4 +1,4 @@
-FROM localhost:8080/public_mirror/ubuntu:25.10
+FROM localhost:8080/public_mirror/ubuntu:26.04
 
 COPY source.list /suggested.sources.list
 

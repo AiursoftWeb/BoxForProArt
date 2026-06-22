@@ -54,7 +54,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       iproute2 \
       cargo \
       rustc \
-      rustup \
       libgtk-4-dev \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
@@ -68,13 +67,9 @@ RUN dpkg --add-architecture arm64 && \
       gcc-aarch64-linux-gnu \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
-      libadwaita-1-dev:arm64 && \
+      libadwaita-1-dev:arm64 \
+      libstd-rust-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
-
-# Update Rust to latest stable and add ARM64 cross-compilation target
-RUN rustup update stable && \
-    rustup target add aarch64-unknown-linux-gnu && \
-    rustup default stable
 
 # Python packages
 RUN pip install PyYAML

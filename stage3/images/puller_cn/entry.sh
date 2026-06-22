@@ -256,7 +256,7 @@ try_docker_login
 images=(
     "clickhouse/clickhouse-server"
     "containrrr/shepherd"
-    "ghcr.io/goauthentik/proxy:2026.2.1"
+    "ghcr.io/goauthentik/proxy:2026.5.3"
     "ghcr.io/nextcloud-releases/aio-talk"
     "grafana/grafana"
     "immybot/remotely:88"

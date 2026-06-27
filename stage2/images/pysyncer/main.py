@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import logging
 
-import uvloop
 from clickhouse_connect import get_client
 
 # === Logging setup ===
@@ -222,23 +221,15 @@ def handle_signal(signum, frame):
     stop_event.set()
 
 
+async def _run():
+    queue = asyncio.Queue(maxsize=50000)
+    await asyncio.gather(reader(queue), flusher(queue))
+
+
 def main():
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
-    uvloop.install()
-    loop = asyncio.get_event_loop()
-    queue = asyncio.Queue(maxsize=50000)
-    tasks = [
-        loop.create_task(reader(queue)),
-        loop.create_task(flusher(queue)),
-    ]
-    try:
-        loop.run_until_complete(asyncio.gather(*tasks))
-    finally:
-        for t in tasks:
-            t.cancel()
-        loop.stop()
-        loop.close()
+    asyncio.run(_run())
 
 
 if __name__ == '__main__':

@@ -60,11 +60,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
 
-# ARM64 cross-compilation toolchain for anduinos-deskmon & ufwall-gtk
+# ARM64 cross-compilation toolchain for anduinos-deskmon, ufwall-gtk & anduinos-why-ai
 RUN dpkg --add-architecture arm64 && \
     apt update && \
     apt install -y --no-install-recommends \
       gcc-aarch64-linux-gnu \
+      libvulkan-dev:arm64 \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \

@@ -70,7 +70,7 @@ RUN dpkg --add-architecture arm64 && \
       gcc-aarch64-linux-gnu \
       libvulkan-dev:arm64 \
       libclang-dev:arm64 \
-      libclang-21-dev:arm64 \
+      libclang1-21:arm64 \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \

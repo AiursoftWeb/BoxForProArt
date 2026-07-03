@@ -26,6 +26,8 @@ services:
       # 8123 will be proxied by Caddy.
     stop_grace_period: 60s
     deploy:
+      labels:
+        shepherd.autoupdate: "true"
       resources:
         limits:
           cpus: '16.0'

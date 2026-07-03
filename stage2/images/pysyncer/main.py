@@ -48,6 +48,40 @@ def create_ch_client():
     return get_client(host=host, port=port, username=CH_USER, password=CH_PASS, database=CH_DB, secure=secure)
 
 
+def ensure_schema():
+    """Create database and table if they do not exist."""
+    # Connect without specifying database to create it
+    secure = CH_URL.startswith('https')
+    parts = CH_URL.split('://')[-1].split(':')
+    host = parts[0]
+    port = int(parts[1]) if len(parts) > 1 else 8123
+    c = get_client(host=host, port=port, username=CH_USER, password=CH_PASS, secure=secure)
+    c.command(f'CREATE DATABASE IF NOT EXISTS {CH_DB}')
+    logger.info("Ensured database %s exists", CH_DB)
+    c.command(f'''
+        CREATE TABLE IF NOT EXISTS {CH_DB}.{CH_TABLE} (
+            ts DateTime,
+            level String,
+            logger String,
+            msg String,
+            remote_ip String,
+            remote_port UInt32,
+            method String,
+            host String,
+            uri String,
+            status UInt16,
+            duration_ms Float64,
+            bytes_sent UInt64,
+            user_agent String,
+            country String,
+            err_id String,
+            err_trace String
+        ) ENGINE = MergeTree()
+        ORDER BY (host, ts)
+    ''')
+    logger.info("Ensured table %s.%s exists", CH_DB, CH_TABLE)
+
+
 def get_last_timestamp():
     client = create_ch_client()
     q = f"SELECT max(ts) FROM {CH_DB}.{CH_TABLE}"
@@ -229,6 +263,8 @@ async def _run():
 def main():
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
+    ensure_schema()
+    logger.info("Schema ready, starting log sync")
     asyncio.run(_run())
 
 

@@ -57,6 +57,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       libgtk-4-dev \
       libvulkan-dev \
       libclang-dev \
+      libclang-21-dev \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
@@ -69,6 +70,7 @@ RUN dpkg --add-architecture arm64 && \
       gcc-aarch64-linux-gnu \
       libvulkan-dev:arm64 \
       libclang-dev:arm64 \
+      libclang-21-dev:arm64 \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \

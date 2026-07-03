@@ -58,6 +58,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       libvulkan-dev \
       libclang-dev \
       libclang-21-dev \
+      cmake \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \

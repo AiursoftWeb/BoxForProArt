@@ -71,6 +71,7 @@ RUN dpkg --add-architecture arm64 && \
     apt update && \
     apt install -y --no-install-recommends \
       gcc-aarch64-linux-gnu \
+      g++-aarch64-linux-gnu \
       libvulkan-dev:arm64 \
       libclang-dev:arm64 \
       libclang1-21:arm64 \

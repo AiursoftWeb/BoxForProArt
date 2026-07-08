@@ -7,6 +7,22 @@ services:
       - ollama-data:/root/.ollama
     networks:
       - internal
+    # 用 entrypoint wrapper 在启动前创建 CUDA 后端 symlink
+    # 根因: ollama v0.31.x 将 libggml-cuda.so 放在 cuda_v12/cuda_v13 子目录，
+    # 但 llama-server 的 ggml_backend_load_all() 只搜 /usr/lib/ollama/ 和 /，
+    # 不搜子目录。OLLAMA_LIBRARY_PATH 只被 Go 代码用，llama-server C 代码不读。
+    # 修复: 启动前把 cuda_v13 的 so 文件 symlink 到 ollama 主目录。
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ln -sf /usr/lib/ollama/cuda_v13/libggml-cuda.so /usr/lib/ollama/libggml-cuda.so
+        ln -sf /usr/lib/ollama/cuda_v13/libcudart.so.13 /usr/lib/ollama/libcudart.so.13
+        ln -sf /usr/lib/ollama/cuda_v13/libcublas.so.13 /usr/lib/ollama/libcublas.so.13
+        ln -sf /usr/lib/ollama/cuda_v13/libcublasLt.so.13 /usr/lib/ollama/libcublasLt.so.13
+        ln -sf /usr/lib/ollama/cuda_v13/libcudart.so.13.0.96 /usr/lib/ollama/libcudart.so.13.0.96
+        ln -sf /usr/lib/ollama/cuda_v13/libcublas.so.13.1.1.3 /usr/lib/ollama/libcublas.so.13.1.1.3
+        ln -sf /usr/lib/ollama/cuda_v13/libcublasLt.so.13.1.1.3 /usr/lib/ollama/libcublasLt.so.13.1.1.3
+        exec /bin/ollama serve
     environment:
     # - OLLAMA_NUM_CTX=32768      # ❌ 必须删掉这行！否则向量模型也会默认去申请 32K，导致显存规划错乱。
       - OLLAMA_MAX_LOADED_MODELS=2  # ✅ 新增这行！明确告诉 Ollama 的调度器：我有钱，请允许同时把 2 个模型常驻在显存里，不要互相踢。
@@ -16,8 +32,8 @@ services:
       - OLLAMA_FLASH_ATTENTION=1
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_KEEP_ALIVE=-1        # ✅ 保持不变，永久驻留
-      - OLLAMA_LOAD_TIMEOUT=15m     
-      - OLLAMA_DEBUG=1              
+      - OLLAMA_LOAD_TIMEOUT=15m
+      - OLLAMA_DEBUG=1
       - OLLAMA_NUM_PARALLEL=1       # ✅ 保持单并发生成，防止抢夺 KV Cache
       - GIN_MODE=release
     stop_grace_period: 60s

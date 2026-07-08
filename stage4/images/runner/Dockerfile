@@ -67,14 +67,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     rm -rf /var/lib/apt/lists/*
 
 # ARM64 cross-compilation toolchain for anduinos-deskmon, ufwall-gtk & anduinos-why-ai
+# No libclang*-arm64 packages here — they conflict with the AMD64 versions
+# needed by Rust bindgen (parse C headers at build time). ARM C cross-compilation
+# and Rust cross-linking don't require target-arch libclang.
 RUN dpkg --add-architecture arm64 && \
     apt update && \
     apt install -y --no-install-recommends \
       gcc-aarch64-linux-gnu \
       g++-aarch64-linux-gnu \
       libvulkan-dev:arm64 \
-      libclang-dev:arm64 \
-      libclang1-21:arm64 \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \

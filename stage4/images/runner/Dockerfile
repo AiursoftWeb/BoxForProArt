@@ -55,6 +55,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       cargo \
       rustc \
       libgtk-4-dev \
+      libpcap-dev \
       libvulkan-dev \
       libclang-dev \
       libclang-21-dev \
@@ -79,6 +80,7 @@ RUN dpkg --add-architecture arm64 && \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \
+      libpcap-dev:arm64 \
       libstd-rust-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 

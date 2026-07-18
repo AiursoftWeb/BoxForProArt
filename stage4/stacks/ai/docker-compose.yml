@@ -42,8 +42,8 @@ services:
         shepherd.autoupdate: "true"
       resources:
         limits:
-          cpus: '8.0'
-          memory: 50G
+          cpus: '16.0'
+          memory: 80G
         reservations:
           generic_resources:
             - discrete_resource_spec:

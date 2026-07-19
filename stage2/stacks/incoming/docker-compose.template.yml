@@ -96,6 +96,8 @@ services:
     image: localhost:8080/box_starting/local_frp_monitor
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SERVICE_NAMES=frpc_ningbo frpc_hk
     stop_grace_period: 10s
     deploy:
       resources:

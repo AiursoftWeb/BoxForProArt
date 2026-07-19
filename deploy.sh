@@ -577,6 +577,9 @@ sudo docker push localhost:8080/box_starting/local_ubuntu:latest
 print_ok "Building local frp..."
 sudo docker build ./stage2/images/frp      -t localhost:8080/box_starting/local_frp:latest
 sudo docker push localhost:8080/box_starting/local_frp:latest
+print_ok "Building local frp-monitor..."
+sudo docker build ./stage2/images/frp-monitor -t localhost:8080/box_starting/local_frp_monitor:latest
+sudo docker push localhost:8080/box_starting/local_frp_monitor:latest
 print_ok "Building local caddy..."
 sudo docker build ./stage2/images/sites    -t localhost:8080/box_starting/local_sites:latest
 sudo docker push localhost:8080/box_starting/local_sites:latest

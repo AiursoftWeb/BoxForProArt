@@ -92,6 +92,19 @@ services:
         order: stop-first
         delay: 60s
 
+  frp_monitor:
+    image: localhost:8080/box_starting/local_frp_monitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    stop_grace_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+      update_config:
+        order: stop-first
+
 volumes:
   sites-data:
     driver: local

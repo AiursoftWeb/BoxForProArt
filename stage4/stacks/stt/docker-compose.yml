@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/internalimages/asr-api:latest
+    environment:
+      - ASR_API_TOKEN={{ASR_API_TOKEN}}
+      - ASR_ENABLE_WHISPERX=true
+      - ASR_ENABLE_FUNASR=false
+      - ASR_ENABLE_FUNASR_REALTIME=false
+      - ASR_WHISPERX_TOKEN={{ASR_WHISPERX_TOKEN}}
+      - ASR_WHISPERX_URL=http://whisperx:8000
+    networks:
+      - proxy_app
+      - internal
+    stop_grace_period: 20s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+      update_config:
+        order: start-first
+        delay: 5s
+
+  whisperx:
+    image: hub.aiursoft.com/aiursoft/internalimages/whisperx:latest
+    environment:
+      - ASR_WHISPERX_TOKEN={{ASR_WHISPERX_TOKEN}}
+      - WHISPERX_MODEL=large-v3
+      - WHISPERX_DEVICE=cuda
+      - WHISPERX_COMPUTE_TYPE=float16
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 16G
+        reservations:
+          generic_resources:
+            - discrete_resource_spec:
+                kind: NVIDIA-GPU
+                value: 1
+      update_config:
+        order: stop-first
+        delay: 60s
+
+networks:
+  proxy_app:
+    external: true
+  internal:
+    driver: overlay

@@ -42,11 +42,6 @@ services:
         limits:
           cpus: "4.0"
           memory: 16G
-        reservations:
-          generic_resources:
-            - discrete_resource_spec:
-                kind: NVIDIA-GPU
-                value: 1
       update_config:
         order: stop-first
         delay: 60s

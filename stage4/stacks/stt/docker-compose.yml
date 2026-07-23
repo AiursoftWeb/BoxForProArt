@@ -10,6 +10,7 @@ services:
       - ASR_ENABLE_FUNASR_REALTIME=false
       - ASR_WHISPERX_TOKEN={{ASR_WHISPERX_TOKEN}}
       - ASR_WHISPERX_URL=http://whisperx:8000
+      - ASR_WHISPERX_SINGLE_MODEL=true
     networks:
       - proxy_app
       - internal

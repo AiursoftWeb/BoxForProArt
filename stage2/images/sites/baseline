@@ -7,9 +7,9 @@
 		resolver 1.1.1.1
 		# The home router intercepts all UDP port 53 queries for *.aiursoft.com,
 		# so certmagic's local DNS propagation check always returns empty.
-		# Skip the check (propagation_timeout 0) and wait 60s for Cloudflare
+		# Skip the check (propagation_timeout -1ns) and wait 60s for Cloudflare
 		# to propagate the TXT record before notifying the ACME server.
-		propagation_timeout 0
+		propagation_timeout -1ns
 		propagation_delay 60s
 	}
 

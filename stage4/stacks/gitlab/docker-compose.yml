@@ -196,9 +196,12 @@ services:
     volumes:
       - agent-bot-workspace:/workspace
       - agent-bot-log:/logs
+      - agent-bot-codex-home:/home/bot/.codex
     environment:
-      - AgentBot__Engine=Claude
-      - AgentBot__Model=aiursoft-super:latest
+      # To switch back to Claude, set Engine=Claude and Model=aiursoft-super:latest.
+      # ApiKey and ApiEndpoint may stay in place because the Codex engine ignores them.
+      - AgentBot__Engine=Codex
+      - AgentBot__Model=gpt-5.6-sol
       - AgentBot__ApiKey={{AGENT_BOT_API_KEY}}
       - AgentBot__ApiEndpoint=https://ollama.aiursoft.com
       - AgentBot__WorkspaceFolder=/workspace
@@ -255,6 +258,12 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/agent-bot/log
+  agent-bot-codex-home:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/agent-bot/codex-home
 
 networks:
   proxy_app:

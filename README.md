@@ -38,3 +38,25 @@ sudo bash deploy.sh
 ```
 
 > **Note:** Ensure NVIDIA Drivers are installed for GPU passthrough support. The `deploy.sh` script will attempt to detect and configure them.
+
+## AgentBot Codex authentication
+
+The GitLab stack runs AgentBot with the `gpt-5.6-sol` Codex model and persists its ChatGPT login under `/swarm-vol/agent-bot/codex-home`. After the first deployment, find the active Swarm task:
+
+```bash
+sudo docker ps \
+  --filter label=com.docker.swarm.service.name=gitlab_agent-bot \
+  --format '{{.ID}}\t{{.Names}}'
+```
+
+Use the returned container ID to complete the one-time device login and verify it:
+
+```bash
+sudo docker exec -it --user bot <container-id> \
+  codex login -c cli_auth_credentials_store=file --device-auth
+
+sudo docker exec --user bot <container-id> \
+  codex login -c cli_auth_credentials_store=file status
+```
+
+Codex stores and refreshes its credentials at `/home/bot/.codex/auth.json`, backed by the host directory above. Treat that directory like a secret. To switch AgentBot back to Claude, change `AgentBot__Engine` to `Claude` and restore `AgentBot__Model=aiursoft-super:latest`; the existing API key and endpoint are deliberately kept in the stack configuration.

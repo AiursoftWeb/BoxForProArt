@@ -50,6 +50,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       gettext \
       wget \
       apt-utils \
+      dpkg \
+      appstream \
+      librsvg2-bin \
       sassc \
       iproute2 \
       cargo \

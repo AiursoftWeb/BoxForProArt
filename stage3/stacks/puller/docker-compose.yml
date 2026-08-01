@@ -34,12 +34,17 @@ services:
       - DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
       - LOCAL_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
       - LOCAL_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
+      - COPY_TIMEOUT_SECONDS=14400
+      - MAX_ATTEMPTS=2
+      # Cron runs every 8h; 7.5h avoids boundary skips caused by run duration.
+      - PUBLIC_CHECK_INTERVAL_SECONDS=27000
+      - INTERNAL_CHECK_INTERVAL_SECONDS=27000
     volumes:
       - sync_records_cn:/app/sync_records
       - run_logs_cn:/app/run_logs
     networks:
       - proxy_app
-    stop_grace_period: 20s
+    stop_grace_period: 90s
     deploy:
       replicas: 1
       resources:

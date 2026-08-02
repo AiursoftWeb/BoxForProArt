@@ -153,7 +153,7 @@ services:
         limits:
           cpus: '6.0'
           memory: 12G
-      replicas: 4
+      replicas: 7
       update_config:
         order: start-first
         delay: 5s
@@ -186,7 +186,7 @@ services:
         limits:
           cpus: '6.0'
           memory: 12G
-      replicas: 4
+      replicas: 7
       update_config:
         order: start-first
         delay: 5s

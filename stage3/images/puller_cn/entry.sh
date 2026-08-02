@@ -1,20 +1,19 @@
 #!/bin/bash
-set -e
+set -Eeuo pipefail
 
-cd /app
+APP_DIR="${APP_DIR:-/app}"
+cd "$APP_DIR"
 
 # Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 DIM='\033[2m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Logging functions
 log_info() {
     echo -e "${BLUE}ℹ${NC} ${BOLD}$1${NC}"
 }
@@ -39,237 +38,317 @@ log_detail() {
     echo -e "  ${DIM}$1${NC}"
 }
 
-# ── Sync-record helpers (used to skip unchanged images) ──────────────
-SYNC_RECORDS_DIR="/app/sync_records"
+REGCTL_BIN="${REGCTL_BIN:-/usr/local/bin/regctl}"
+SYNC_RECORDS_DIR="${SYNC_RECORDS_DIR:-/app/sync_records}"
+COPY_TIMEOUT_SECONDS="${COPY_TIMEOUT_SECONDS:-14400}"
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-2}"
+RETRY_BASE_SECONDS="${RETRY_BASE_SECONDS:-120}"
+POST_COPY_SETTLE_SECONDS="${POST_COPY_SETTLE_SECONDS:-3}"
+PUBLIC_CHECK_INTERVAL_SECONDS="${PUBLIC_CHECK_INTERVAL_SECONDS:-27000}"
+INTERNAL_CHECK_INTERVAL_SECONDS="${INTERNAL_CHECK_INTERVAL_SECONDS:-27000}"
+
 mkdir -p "$SYNC_RECORDS_DIR"
 
-get_sync_record_file() {
+require_non_negative_integer() {
+    local name="$1"
+    local value="$2"
+
+    if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+        log_error "$name must be a non-negative integer, got: $value"
+        exit 1
+    fi
+}
+
+require_positive_integer() {
+    local name="$1"
+    local value="$2"
+
+    require_non_negative_integer "$name" "$value"
+    if [ "$value" -eq 0 ]; then
+        log_error "$name must be greater than zero"
+        exit 1
+    fi
+}
+
+require_positive_integer "COPY_TIMEOUT_SECONDS" "$COPY_TIMEOUT_SECONDS"
+require_positive_integer "MAX_ATTEMPTS" "$MAX_ATTEMPTS"
+require_non_negative_integer "RETRY_BASE_SECONDS" "$RETRY_BASE_SECONDS"
+require_non_negative_integer "POST_COPY_SETTLE_SECONDS" "$POST_COPY_SETTLE_SECONDS"
+require_non_negative_integer "PUBLIC_CHECK_INTERVAL_SECONDS" "$PUBLIC_CHECK_INTERVAL_SECONDS"
+require_non_negative_integer "INTERNAL_CHECK_INTERVAL_SECONDS" "$INTERNAL_CHECK_INTERVAL_SECONDS"
+
+normalise_image() {
     local image="$1"
-    # Normalise: append :latest when no tag is specified
-    if [[ "$image" != *":"* ]]; then
+
+    if [[ "${image##*/}" != *":"* ]]; then
         image="${image}:latest"
     fi
-    # Replace / with __ and : with _ for safe filenames
-    echo "${SYNC_RECORDS_DIR}/$(echo "$image" | sed 's|/|__|g; s|:|_|g')"
+
+    printf '%s\n' "$image"
+}
+
+get_sync_record_file() {
+    local image
+    image=$(normalise_image "$1")
+    printf '%s/%s\n' "$SYNC_RECORDS_DIR" "$(echo "$image" | sed 's|/|__|g; s|:|_|g')"
 }
 
 save_sync_record() {
     local image="$1"
+    local digest="$2"
     local record_file
+    local temporary_file
+
     record_file=$(get_sync_record_file "$image")
-    date +%s > "$record_file"
+    temporary_file="${record_file}.tmp.$$"
+    printf '%s %s\n' "$(date +%s)" "$digest" > "$temporary_file"
+    mv "$temporary_file" "$record_file"
 }
 
-get_last_sync_time() {
+get_target_reference() {
+    local image
+    image=$(normalise_image "$1")
+    printf '%s/%s\n' "$MIRROR_TARGET" "$image"
+}
+
+should_skip_recent_image() {
     local image="$1"
+    local check_interval_seconds="$2"
     local record_file
-    record_file=$(get_sync_record_file "$image")
-    if [[ -f "$record_file" ]]; then
-        cat "$record_file"
-    else
-        echo "0"
-    fi
-}
+    local last_sync_epoch=""
+    local recorded_digest=""
+    local age_seconds
+    local target_reference
+    local target_digest
 
-should_skip_image() {
-    local sourceImage="$1"
-
-    if [[ "$sourceImage" != *":"* ]]; then
-        sourceImage="${sourceImage}:latest"
-    fi
-
-    local imageName imageTag finalMirror lastSync
-    imageName=$(echo "$sourceImage" | cut -d: -f1)
-    imageTag=$(echo "$sourceImage" | cut -d: -f2)
-    finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
-
-    lastSync=$(get_last_sync_time "$sourceImage")
-
-    if [[ "$lastSync" == "0" ]]; then
-        # Never synced before – must proceed
+    if [ "$check_interval_seconds" -eq 0 ]; then
         return 1
     fi
 
-    # Ask source_updated.py whether a sync is needed
-    #   exit 0 → safe to skip  |  exit 1 → must sync
-    if python3 source_updated.py "$sourceImage" "$lastSync" 2>/dev/null; then
-        # Double-check: the image must still be present in our mirror
-        if /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
-            return 0   # skip
-        else
-            log_warning "Source unchanged but mirror image missing/invalid – will re-sync"
-            return 1
-        fi
+    record_file=$(get_sync_record_file "$image")
+    if [ ! -f "$record_file" ]; then
+        return 1
     fi
 
-    return 1   # proceed with sync
+    read -r last_sync_epoch recorded_digest < "$record_file" || true
+    if [[ ! "$last_sync_epoch" =~ ^[0-9]+$ ]] || [ -z "$recorded_digest" ]; then
+        # Old timestamp-only records are intentionally refreshed once.
+        return 1
+    fi
+
+    age_seconds=$(( $(date +%s) - last_sync_epoch ))
+    if [ "$age_seconds" -ge "$check_interval_seconds" ]; then
+        return 1
+    fi
+
+    # Even during the public-image quiet period, repair a missing or changed
+    # target immediately instead of trusting only the local timestamp.
+    target_reference=$(get_target_reference "$image")
+    target_digest=$("$REGCTL_BIN" image digest "$target_reference" 2>/dev/null || true)
+    if [ "$target_digest" = "$recorded_digest" ]; then
+        return 0
+    fi
+
+    log_warning "Recorded target digest is missing or changed; forcing a fresh sync check"
+    return 1
 }
 
-must_login_local_registry() {
-    if [[ -z "$MIRROR_TARGET" ]]; then
+must_login_target_registry() {
+    if [ -z "${MIRROR_TARGET:-}" ]; then
         log_error "MIRROR_TARGET is not set. Cannot proceed."
         exit 1
     fi
 
-    log_step "Authenticating to local registry"
+    log_step "Authenticating to target registry"
     log_detail "Registry: ${MIRROR_TARGET}"
-    log_detail "Username: ${LOCAL_DOCKER_USERNAME}"
 
-    if [[ -z "$LOCAL_DOCKER_USERNAME" || -z "$LOCAL_DOCKER_PASSWORD" ]]; then
-        log_error "Local Docker credentials are not set. Aborting."
+    if [ -z "${LOCAL_DOCKER_USERNAME:-}" ] || [ -z "${LOCAL_DOCKER_PASSWORD:-}" ]; then
+        log_error "Target registry credentials are not set. Aborting."
         exit 1
     fi
 
-    /usr/local/bin/regctl registry login "${MIRROR_TARGET}" -u "$LOCAL_DOCKER_USERNAME" -p "$LOCAL_DOCKER_PASSWORD" > /dev/null 2>&1
+    "$REGCTL_BIN" registry login "$MIRROR_TARGET" \
+        -u "$LOCAL_DOCKER_USERNAME" \
+        -p "$LOCAL_DOCKER_PASSWORD" > /dev/null 2>&1
     log_success "Successfully authenticated to ${MIRROR_TARGET}"
 }
 
-try_docker_login() {
-    if [[ -n "$FROM_REGISTRY" ]]; then
-        log_step "Authenticating to source registry"
-        log_detail "Registry: ${FROM_REGISTRY}"
-    else
-        log_step "Authenticating to Docker Hub"
-    fi
-    
-    if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
-        log_warning "Docker credentials not set. Skipping authentication."
-        return 0
+must_login_source_registry() {
+    if [ -z "${FROM_REGISTRY:-}" ]; then
+        log_error "FROM_REGISTRY is not set. puller_cn only mirrors from the home registry."
+        exit 1
     fi
 
-    log_detail "Username: ${DOCKER_USERNAME}"
-    if [[ -n "$FROM_REGISTRY" ]]; then
-        /usr/local/bin/regctl registry login "${FROM_REGISTRY}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
-        log_success "Successfully authenticated to ${FROM_REGISTRY}"
-    else
-        /usr/local/bin/regctl registry login "docker.io" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
-        log_success "Successfully authenticated to Docker Hub"
+    log_step "Authenticating to source registry"
+    log_detail "Registry: ${FROM_REGISTRY}"
+
+    if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+        log_error "Source registry credentials are not set. Aborting."
+        exit 1
     fi
+
+    "$REGCTL_BIN" registry login "$FROM_REGISTRY" \
+        -u "$DOCKER_USERNAME" \
+        -p "$DOCKER_PASSWORD" > /dev/null 2>&1
+    log_success "Successfully authenticated to ${FROM_REGISTRY}"
 }
 
+copy_image_once() {
+    local requested_image="$1"
+    local attempt="$2"
+    local image
+    local image_name
+    local image_tag
+    local source_reference
+    local source_repository
+    local pinned_source_reference
+    local target_reference
+    local source_digest
+    local target_digest
+    local copied_digest
+    local copy_arguments=()
 
-actual_mirror_docker() {
-    sourceImage="$1"
-    attempt="$2"
+    image=$(normalise_image "$requested_image")
+    image_name="${image%:*}"
+    image_tag="${image##*:}"
+    source_reference="${FROM_REGISTRY}/${image_name}:${image_tag}"
+    source_repository="${source_reference%:*}"
+    target_reference="${MIRROR_TARGET}/${image_name}:${image_tag}"
 
-    if [[ "$sourceImage" != *":"* ]]; then
-        sourceImage="${sourceImage}:latest"
-    fi
+    log_detail "Source: ${source_reference}"
+    log_detail "Target: ${target_reference}"
+    log_info "Comparing source and target digests..."
 
-    imageName=$(echo "$sourceImage" | cut -d: -f1)
-    imageTag=$(echo "$sourceImage" | cut -d: -f2)
-    finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
-
-    # If FROM_REGISTRY is set, prepend it to the source image
-    if [[ -n "$FROM_REGISTRY" ]]; then
-        fullSourceImage="${FROM_REGISTRY}/${imageName}:${imageTag}"
-    else
-        fullSourceImage="${sourceImage}"
-    fi
-
-    log_detail "Source: ${fullSourceImage}"
-    log_detail "Target: ${finalMirror}"
-    
-    # Check if already mirrored by comparing digests
-    log_info "Checking if image is already up-to-date..."
-    src_digest=$(/usr/local/bin/regctl image digest "$fullSourceImage" 2>/dev/null)
-    dest_digest=$(/usr/local/bin/regctl image digest "$finalMirror" 2>/dev/null)
-
-    if [[ -n "$src_digest" && "$src_digest" == "$dest_digest" ]]; then
-        log_info "Image already mirrored (digests match), verifying integrity..."
-        if ! /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
-            log_warning "Integrity check failed, cleaning up..."
-            /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
-            return 1
-        fi
-        log_success "Image is up-to-date and valid"
-        save_sync_record "$sourceImage"
-        return 0
-    fi
-
-    # Perform the copy
-    log_info "Copying image (attempt ${attempt})..."
-    if [[ $attempt -eq 1 ]]; then
-        timeout 1800 /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --digest-tags 2>&1 | sed 's/^/  /'
-    else
-        timeout 1800 /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --force-recursive --digest-tags 2>&1 | sed 's/^/  /'
-    fi
-    sleep 3
-
-    # Verify the copy
-    log_info "Verifying mirrored image..."
-    
-    if ! /usr/local/bin/regctl image manifest "$finalMirror" &> /dev/null; then
-        log_error "Manifest verification failed"
-        /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
+    source_digest=$("$REGCTL_BIN" image digest "$source_reference" 2>/dev/null || true)
+    if [ -z "$source_digest" ]; then
+        log_error "Unable to resolve source digest: ${source_reference}"
         return 1
     fi
 
-    log_success "Image mirrored and verified successfully"
-    save_sync_record "$sourceImage"
+    target_digest=$("$REGCTL_BIN" image digest "$target_reference" 2>/dev/null || true)
+    if [ "$source_digest" = "$target_digest" ]; then
+        log_success "Image is already up-to-date (${source_digest})"
+        save_sync_record "$image" "$source_digest"
+        return 0
+    fi
+
+    # Pin the source digest before copying. If CI moves :latest during a long
+    # transfer, this run remains deterministic and the next poll picks up the
+    # newer digest.
+    pinned_source_reference="${source_repository}@${source_digest}"
+    copy_arguments=(image copy "$pinned_source_reference" "$target_reference" --digest-tags)
+    if [ "$attempt" -gt 1 ]; then
+        copy_arguments+=(--force-recursive)
+    fi
+
+    log_info "Copying pinned digest ${source_digest} (attempt ${attempt})..."
+    if ! timeout --foreground --signal=TERM --kill-after=60s "$COPY_TIMEOUT_SECONDS" \
+        "$REGCTL_BIN" "${copy_arguments[@]}" 2>&1 | sed 's/^/  /'; then
+        log_error "Copy command failed or exceeded ${COPY_TIMEOUT_SECONDS}s"
+        return 1
+    fi
+
+    if [ "$POST_COPY_SETTLE_SECONDS" -gt 0 ]; then
+        sleep "$POST_COPY_SETTLE_SECONDS"
+    fi
+
+    copied_digest=$("$REGCTL_BIN" image digest "$target_reference" 2>/dev/null || true)
+    if [ "$copied_digest" != "$source_digest" ]; then
+        log_error "Digest verification failed: expected ${source_digest}, got ${copied_digest:-missing}"
+        return 1
+    fi
+
+    save_sync_record "$image" "$source_digest"
+    log_success "Image copied and digest verified successfully"
     return 0
 }
 
+mirror_image() {
+    local image="$1"
+    local check_interval_seconds="$2"
+    local attempt
+    local backoff_seconds
 
+    log_step "Mirroring: ${BOLD}${image}${NC}"
 
-mirror_docker() {
-    sourceImage="$1"
-    max_attempts=8
-    
-    log_step "Mirroring: ${BOLD}${sourceImage}${NC}"
-
-    # ── Skip images whose source has not changed since last sync ──
-    if should_skip_image "$sourceImage"; then
-        log_success "Skipped ${BOLD}${sourceImage}${NC} (source unchanged since last sync)"
-        echo ""
+    if should_skip_recent_image "$image" "$check_interval_seconds"; then
+        log_success "Skipped ${BOLD}${image}${NC} (checked recently; target digest still matches)"
         return 0
     fi
-    
-    for attempt in $(seq 1 $max_attempts); do
-        log_info "Attempt ${attempt}/${max_attempts}"
-        
-        if actual_mirror_docker "$sourceImage" "$attempt"; then
-            log_success "${BOLD}${sourceImage}${NC} mirrored successfully"
-            echo ""
+
+    for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
+        log_info "Attempt ${attempt}/${MAX_ATTEMPTS}"
+
+        if copy_image_once "$image" "$attempt"; then
+            log_success "${BOLD}${image}${NC} mirrored successfully"
             return 0
         fi
-        
-        # Calculate backoff time with exponential increase and some randomness
-        backoff=$((300 + (attempt * attempt * 15) + (RANDOM % 30)))
-        
-        if [ $attempt -lt $max_attempts ]; then
-            log_warning "Mirror failed, retrying in ${backoff}s..."
-            sleep $backoff
-        else
-            log_error "${BOLD}${sourceImage}${NC} failed after ${max_attempts} attempts"
-            echo ""
-            return 1
+
+        if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+            backoff_seconds=$(( RETRY_BASE_SECONDS * attempt + RANDOM % 30 ))
+            log_warning "Mirror failed, retrying in ${backoff_seconds}s..."
+            sleep "$backoff_seconds"
         fi
     done
+
+    log_error "${BOLD}${image}${NC} failed after ${MAX_ATTEMPTS} attempts"
+    return 1
 }
 
+must_login_target_registry
+must_login_source_registry
 
-must_login_local_registry
-try_docker_login
-# Define images list — only what BoxForChina stage4 stacks actually consume.
-# aiursoft/* images are built by GitLab CI and pushed directly; no mirroring needed here.
-images=(
-    "clickhouse/clickhouse-server"
-    "containrrr/shepherd"
+# BoxForChina public runtime dependencies. They are checked every eight hours
+# because their home-registry copies are maintained by the public puller.
+public_images=(
+    "clickhouse/clickhouse-server:latest"
+    "containrrr/shepherd:latest"
     "ghcr.io/goauthentik/proxy:2026.5.3"
-    "ghcr.io/nextcloud-releases/aio-talk"
-    "grafana/grafana"
+    "ghcr.io/nextcloud-releases/aio-talk:latest"
+    "grafana/grafana:latest"
     "immybot/remotely:88"
     "mysql:9.7.0"
 )
 
-# Shuffle the list and iterate
-shuffled_images=($(printf "%s\n" "${images[@]}" | shuf))
+# Aiursoft images actually consumed by BoxForChina. They use the same relaxed
+# eight-hour schedule as public images; GitLab CI no longer pushes them to CN.
+internal_images=(
+    "aiursoft/employeecenter:latest"
+    "aiursoft/folderagent:latest"
+    "aiursoft/musicexam:latest"
+    "aiursoft/tracer:latest"
+    "aiursoft/wechatexam:latest"
+)
 
-for image in "${shuffled_images[@]}"; do
-    mirror_docker "$image"
+image_specs=()
+for image in "${public_images[@]}"; do
+    image_specs+=("${PUBLIC_CHECK_INTERVAL_SECONDS}|${image}")
+done
+for image in "${internal_images[@]}"; do
+    image_specs+=("${INTERNAL_CHECK_INTERVAL_SECONDS}|${image}")
 done
 
+# Use one sequential worker to protect the constrained home-to-China uplink.
+# Shuffling prevents a repeatedly failing large image from always being first.
+mapfile -t shuffled_specs < <(printf '%s\n' "${image_specs[@]}" | shuf)
+
+failed_images=()
+for image_spec in "${shuffled_specs[@]}"; do
+    check_interval_seconds="${image_spec%%|*}"
+    image="${image_spec#*|}"
+
+    if ! mirror_image "$image" "$check_interval_seconds"; then
+        failed_images+=("$image")
+    fi
+done
+
+if [ "${#failed_images[@]}" -gt 0 ]; then
+    echo -e "\n${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    log_error "${#failed_images[@]} image(s) failed: ${failed_images[*]}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+    exit 1
+fi
+
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-log_success "${BOLD}All images have been processed${NC}"
+log_success "${BOLD}All required BoxForChina images are synchronized${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"

@@ -45,6 +45,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       jq \
       sudo \
       python3-pip \
+      python3-unidecode \
       shellcheck \
       dotnet10 \
       gettext \

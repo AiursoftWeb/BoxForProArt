@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   app:
-    image: hub.aiursoft.com/aiursoft/internalimages/asr-api:latest
+    image: hub.aiursoft.com/aiursoft/asr-api:latest
     environment:
       - ASR_API_TOKEN={{ASR_API_TOKEN}}
       - ASR_ENABLE_WHISPERX=true
@@ -27,7 +27,7 @@ services:
         delay: 5s
 
   whisperx:
-    image: hub.aiursoft.com/aiursoft/internalimages/whisperx:latest
+    image: hub.aiursoft.com/aiursoft/whisperx:latest
     environment:
       - ASR_WHISPERX_TOKEN={{ASR_WHISPERX_TOKEN}}
       - WHISPERX_MODEL=large-v3

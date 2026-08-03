@@ -10,7 +10,6 @@ RUN apt update && apt install -y curl ca-certificates apt-transport-https && \
     apt upgrade -y
 
 WORKDIR /app
-COPY . .
 
 # Install regctl
 RUN curl -m 50 -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o /usr/local/bin/regctl && \
@@ -29,6 +28,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       build-essential \
       bc \
       ffmpeg \
+      aria2 \
       zip \
       unzip \
       tar \
@@ -104,11 +104,35 @@ RUN npm config set registry https://npm.aiursoft.com && \
     npm install -g typescript ts-node npm yarn --loglevel verbose
 
 # Install GitLab Runner
-RUN curl -LJO "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/latest/deb/gitlab-runner-helper-images.deb" && \
-    curl -LJO "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/latest/deb/gitlab-runner_amd64.deb" && \
-    dpkg -i gitlab-runner-helper-images.deb && \
-    dpkg -i gitlab-runner_amd64.deb && \
-    rm -rf gitlab-runner-helper-images.deb gitlab-runner_amd64.deb
+RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
+    set -eux; \
+    download_dir=/var/cache/gitlab-runner-downloads; \
+    base_url=https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/latest/deb; \
+    packages="gitlab-runner-helper-images.deb gitlab-runner_amd64.deb"; \
+    download() { \
+      package=$1; \
+      aria2c \
+        --disable-ipv6=true \
+        --continue=true \
+        --max-connection-per-server=16 \
+        --split=16 \
+        --min-split-size=1M \
+        --max-tries=20 \
+        --retry-wait=5 \
+        --connect-timeout=20 \
+        --timeout=60 \
+        --lowest-speed-limit=1K \
+        --auto-file-renaming=false \
+        --allow-overwrite=true \
+        --dir="$download_dir" \
+        --out="$package" \
+        "$base_url/$package"; \
+    }; \
+    for package in $packages; do download "$package"; done; \
+    for package in $packages; do dpkg -i "$download_dir/$package"; done; \
+    for package in $packages; do \
+      rm -f "$download_dir/$package" "$download_dir/$package.aria2"; \
+    done
 
 # Enable docker in docker & configure passwordless sudo
 RUN usermod -aG docker root && \
@@ -117,6 +141,7 @@ RUN usermod -aG docker root && \
     echo "gitlab-runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Create a directory for data
+COPY entry.sh /app/entry.sh
 RUN mkdir /data && chmod 777 /data && \
     chmod +x /app/entry.sh
 

@@ -44,6 +44,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       git \
       jq \
       sudo \
+      python3-gi \
       python3-pip \
       python3-unidecode \
       shellcheck \

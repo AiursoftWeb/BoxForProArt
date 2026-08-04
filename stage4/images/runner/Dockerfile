@@ -43,6 +43,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       net-tools \
       git \
       jq \
+      ripgrep \
       sudo \
       python3-gi \
       python3-pip \
@@ -57,8 +58,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       librsvg2-bin \
       sassc \
       iproute2 \
-      cargo \
-      rustc \
       libgtk-4-dev \
       libpcap-dev \
       libvulkan-dev \
@@ -72,7 +71,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
 
-# ARM64 cross-compilation toolchain for anduinos-deskmon, ufwall-gtk & anduinos-why-ai
+# ARM64 cross-compilation toolchain for Rust/GTK applications
 # No libclang*-arm64 packages here — they conflict with the AMD64 versions
 # needed by Rust bindgen (parse C headers at build time). ARM C cross-compilation
 # and Rust cross-linking don't require target-arch libclang.
@@ -81,12 +80,12 @@ RUN dpkg --add-architecture arm64 && \
     apt install -y --no-install-recommends \
       gcc-aarch64-linux-gnu \
       g++-aarch64-linux-gnu \
+      libc6-dev-arm64-cross \
       libvulkan-dev:arm64 \
       libglib2.0-dev:arm64 \
       libgtk-4-dev:arm64 \
       libadwaita-1-dev:arm64 \
-      libpcap-dev:arm64 \
-      libstd-rust-dev:arm64 && \
+      libpcap-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 
 # Python packages
@@ -133,6 +132,12 @@ RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
     for package in $packages; do \
       rm -f "$download_dir/$package" "$download_dir/$package.aria2"; \
     done
+
+# Install the one canonical Rust toolchain used by shell-executor jobs. The
+# setup script also cross-links an AArch64 binary, so a broken image fails here.
+COPY setup-rust-toolchain.sh /usr/local/sbin/setup-rust-toolchain
+RUN chmod 0755 /usr/local/sbin/setup-rust-toolchain && \
+    /usr/local/sbin/setup-rust-toolchain
 
 # Enable docker in docker & configure passwordless sudo
 RUN usermod -aG docker root && \

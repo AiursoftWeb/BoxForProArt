@@ -93,7 +93,7 @@ services:
         delay: 60s
 
   authentik_proxy:
-    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2026.5.3
+    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2026.5.6
     volumes:
       - type: bind
         source: /dev/shm

@@ -404,7 +404,7 @@ for network in $external_networks; do
 done
 
 print_ok "Creating data folders..."
-sudo mkdir -p /swarm-vol/docker-data
+sudo mkdir -p /swarm-vol/docker-data /swarm-vol/containerd-data
 
 find . -name 'docker-compose.yml' | while read file; do
   awk '{if(/device:/) print $2}' "$file" | while read -r path; do
@@ -421,6 +421,9 @@ done
 # Docker Daemon Configuration
 #=============================
 print_ok "Configuring docker daemon..."
+
+old_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
+sudo sed -i 's|^#\?root = .*|root = "/swarm-vol/containerd-data"|' /etc/containerd/config.toml
 
 if [ -f /etc/docker/daemon.json ]; then
     old_hash_daemon=$(sha256sum /etc/docker/daemon.json | awk '{print $1}')
@@ -515,7 +518,13 @@ else
     new_hash_nvidia=""
 fi
 
-if [ "$old_hash_daemon" != "$new_hash_daemon" ] || [ "$old_hash_nvidia" != "$new_hash_nvidia" ]; then
+new_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
+if [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
+    print_warn "Containerd configuration changed. Restarting containerd service..."
+    sudo systemctl restart containerd.service
+fi
+
+if [ "$old_hash_daemon" != "$new_hash_daemon" ] || [ "$old_hash_nvidia" != "$new_hash_nvidia" ] || [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
     print_warn "Configuration files changed. Restarting docker service..."
     sudo systemctl restart docker.service
 else

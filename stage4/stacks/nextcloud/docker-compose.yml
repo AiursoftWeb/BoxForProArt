@@ -55,6 +55,8 @@ services:
         apk add --no-cache docker;
         echo "Starting nextcloud job runner. Sleep 120 seconds to wait for nextcloud web service";
         sleep 120;
+        echo "Setting OIDC as the default login method";
+        docker ps --filter name=nextcloud_web -q | xargs -r -I {} docker exec -u www-data {} /usr/local/bin/php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends;
         # Avoid upgrade here because it may mess up the instance.
         # echo "Upgrading nextcloud";
         # docker ps --filter name=nextcloud_web -q | xargs -r -I {} docker exec -u www-data {} /usr/local/bin/php occ upgrade;

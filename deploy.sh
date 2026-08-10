@@ -422,6 +422,10 @@ done
 #=============================
 print_ok "Configuring docker daemon..."
 
+if [ ! -f /etc/containerd/config.toml ]; then
+    sudo mkdir -p /etc/containerd
+    sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+fi
 old_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
 sudo sed -i 's|^#\?root = .*|root = "/swarm-vol/containerd-data"|' /etc/containerd/config.toml
 

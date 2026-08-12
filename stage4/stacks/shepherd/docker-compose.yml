@@ -6,8 +6,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - TZ=UTC
-      - FILTER_SERVICES=label=shepherd.autoupdate=true
+      TZ: UTC
+      FILTER_SERVICES: label=shepherd.autoupdate=true
+      WITH_REGISTRY_AUTH: "true"
+      REGISTRY_HOST: "{{REGISTRY_HOST}}"
+      REGISTRY_USER: "{{DOCKERHUB_USERNAME}}"
+      REGISTRY_PASSWORD: "{{DOCKERHUB_PASSWORD}}"
     networks:
       - proxy_app
     stop_grace_period: 60s

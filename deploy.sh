@@ -91,6 +91,47 @@ else
     print_ok "No .env or .env.prod file found. Proceeding without variable substitution."
 fi
 
+function get_env_value() {
+    local key=$1
+    local line
+
+    if [ -z "$ENV_FILE" ]; then
+        print_error "No environment file found. '$key' is required." >&2
+        exit 1
+    fi
+
+    line=$(grep -m1 -E "^${key}=" "$ENV_FILE" || true)
+    if [ -z "$line" ] || [ -z "${line#*=}" ]; then
+        print_error "'$key' is missing or empty in $ENV_FILE." >&2
+        exit 1
+    fi
+
+    printf '%s' "${line#*=}"
+}
+
+function login_to_hub() {
+    local registry_host=$1
+    local verification_image=$2
+    local hub_username
+    local hub_password
+
+    hub_username=$(get_env_value "DOCKERHUB_USERNAME")
+    hub_password=$(get_env_value "DOCKERHUB_PASSWORD")
+
+    print_ok "Logging in to $registry_host..."
+    if ! printf '%s' "$hub_password" | sudo docker login "$registry_host" --username "$hub_username" --password-stdin; then
+        print_error "Failed to log in to $registry_host."
+        exit 1
+    fi
+    unset hub_password
+
+    print_ok "Verifying access to $registry_host/$verification_image..."
+    if ! sudo docker manifest inspect "$registry_host/$verification_image" >/dev/null; then
+        print_error "Registry login succeeded, but the configured account cannot read $registry_host/$verification_image."
+        exit 1
+    fi
+}
+
 function install_yq() {
     local download_link="https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
     sudo wget -O /usr/bin/yq "$download_link"
@@ -658,8 +699,10 @@ deploy stage3/stacks/ppamirror/docker-compose.yml ppamirror
 
 print_ok "Making sure the zot is ready..."
 sleep 5
-while [ "$(curl -s -o /dev/null -w "%{http_code}" https://hub.aiursoft.com)" != "200" ]; do
-    print_warn "Waiting for registry (https://hub.aiursoft.com) to start... ETA: 25s"
+registry_host=$(get_env_value "REGISTRY_HOST")
+while [ "$(curl -s -o /dev/null -w "%{http_code}" "https://$registry_host")" != "200" ] || \
+      [ "$(curl -s -A 'docker/29.1.3' -o /dev/null -w "%{http_code}" "https://$registry_host/v2/")" != "401" ]; do
+    print_warn "Waiting for registry (https://$registry_host) to start... ETA: 25s"
     sleep 1
 done
 
@@ -673,6 +716,8 @@ print_warn "====================================================================
 print_warn "   Starting stage 4: Mission is to deploy business stacks"
 print_warn "=============================================================================="
 sleep 3
+
+login_to_hub "$(get_env_value "REGISTRY_HOST")" "$(get_env_value "REGISTRY_VERIFICATION_IMAGE")"
 
 print_ok "Building local runner..."
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest

@@ -162,14 +162,14 @@ must_login_target_registry() {
     log_step "Authenticating to target registry"
     log_detail "Registry: ${MIRROR_TARGET}"
 
-    if [ -z "${LOCAL_DOCKER_USERNAME:-}" ] || [ -z "${LOCAL_DOCKER_PASSWORD:-}" ]; then
+    if [ -z "${CN_DOCKER_USERNAME:-}" ] || [ -z "${CN_DOCKER_PASSWORD:-}" ]; then
         log_error "Target registry credentials are not set. Aborting."
         exit 1
     fi
 
     "$REGCTL_BIN" registry login "$MIRROR_TARGET" \
-        -u "$LOCAL_DOCKER_USERNAME" \
-        -p "$LOCAL_DOCKER_PASSWORD" > /dev/null 2>&1
+        -u "$CN_DOCKER_USERNAME" \
+        -p "$CN_DOCKER_PASSWORD" > /dev/null 2>&1
     log_success "Successfully authenticated to ${MIRROR_TARGET}"
 }
 

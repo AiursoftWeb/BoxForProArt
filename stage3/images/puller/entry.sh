@@ -113,14 +113,14 @@ must_login_local_registry() {
 
     log_step "Authenticating to local registry"
     log_detail "Registry: ${MIRROR_TARGET}"
-    log_detail "Username: ${LOCAL_DOCKER_USERNAME}"
+    log_detail "Username: ${DOCKERHUB_USERNAME}"
 
-    if [[ -z "$LOCAL_DOCKER_USERNAME" || -z "$LOCAL_DOCKER_PASSWORD" ]]; then
+    if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_PASSWORD" ]]; then
         log_error "Local Docker credentials are not set. Aborting."
         exit 1
     fi
 
-    /usr/local/bin/regctl registry login "${MIRROR_TARGET}" -u "$LOCAL_DOCKER_USERNAME" -p "$LOCAL_DOCKER_PASSWORD" > /dev/null 2>&1
+    /usr/local/bin/regctl registry login "${MIRROR_TARGET}" -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_PASSWORD" > /dev/null 2>&1
     log_success "Successfully authenticated to ${MIRROR_TARGET}"
 }
 

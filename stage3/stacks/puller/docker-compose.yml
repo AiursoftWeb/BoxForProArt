@@ -5,10 +5,10 @@ services:
     image: localhost:8080/box_starting/local_puller
     environment:
       - MIRROR_TARGET=hub.aiursoft.com
-      - DOCKER_USERNAME={{DOCKER_HUB_USERNAME}}
-      - DOCKER_PASSWORD={{DOCKER_HUB_PASSWORD}}
-      - LOCAL_DOCKER_USERNAME={{LOCAL_DOCKER_USERNAME}}
-      - LOCAL_DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
+      - DOCKER_USERNAME={{PUBLIC_DOCKER_HUB_USERNAME}}
+      - DOCKER_PASSWORD={{PUBLIC_DOCKER_HUB_PASSWORD}}
+      - DOCKERHUB_USERNAME={{DOCKERHUB_USERNAME}}
+      - DOCKERHUB_PASSWORD={{DOCKERHUB_PASSWORD}}
     volumes:
       - sync_records:/app/sync_records
       - run_logs:/app/run_logs
@@ -30,10 +30,10 @@ services:
     environment:
       - FROM_REGISTRY=hub.aiursoft.com
       - MIRROR_TARGET=hub.aiursoft.cn
-      - DOCKER_USERNAME={{LOCAL_DOCKER_USERNAME}}
-      - DOCKER_PASSWORD={{LOCAL_DOCKER_PASSWORD}}
-      - LOCAL_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
-      - LOCAL_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
+      - DOCKER_USERNAME={{DOCKERHUB_USERNAME}}
+      - DOCKER_PASSWORD={{DOCKERHUB_PASSWORD}}
+      - CN_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
+      - CN_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
       - COPY_TIMEOUT_SECONDS=14400
       - MAX_ATTEMPTS=2
       # Cron runs every 8h; 7.5h avoids boundary skips caused by run duration.

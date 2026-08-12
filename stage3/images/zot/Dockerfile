@@ -13,7 +13,8 @@ RUN apt-get update \
 
 RUN mkdir -p /etc/zot /config /data
 
-RUN aria2c \
+RUN ZOT_URL="https://github.com/project-zot/zot/releases/download/${ZOT_VERSION}/zot-linux-amd64" \
+    && if ! aria2c \
         --allow-overwrite=true \
         --auto-file-renaming=false \
         --max-connection-per-server=16 \
@@ -21,7 +22,15 @@ RUN aria2c \
         --min-split-size=1M \
         --dir=/usr/local/bin \
         --out=zot \
-        "https://github.com/project-zot/zot/releases/download/${ZOT_VERSION}/zot-linux-amd64" \
+        "${ZOT_URL}"; then \
+        rm -f /usr/local/bin/zot /usr/local/bin/zot.aria2; \
+        curl --fail --location \
+            --retry 20 \
+            --retry-all-errors \
+            --retry-delay 2 \
+            --output /usr/local/bin/zot \
+            "${ZOT_URL}"; \
+    fi \
     && echo "${ZOT_SHA256}  /usr/local/bin/zot" | sha256sum -c - \
     && chmod +x /usr/local/bin/zot \
     && /usr/local/bin/zot --version 2>&1 | grep -q "\"commit\":\"${ZOT_VERSION}-"

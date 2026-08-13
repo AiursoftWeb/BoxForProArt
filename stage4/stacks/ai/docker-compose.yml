@@ -166,6 +166,35 @@ services:
         delay: 5s
     entrypoint: ["mcpo", "--config", "/data/config.json"]
 
+  codex-proxy:
+    image: hub.aiursoft.com/aiursoft/internalimages/codexproxy:latest
+    volumes:
+      # 首次启动时从 AgentBot 的 Codex CLI 凭据只读导入；之后由
+      # codex-proxy 在下方持久化目录中自行维护并刷新 token。
+      - type: bind
+        source: /swarm-vol/agent-bot/codex-home/auth.json
+        target: /home/appuser/.codex/auth.json
+        read_only: true
+      - codex-proxy-data:/home/appuser/.codex-proxy
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+
   open-webui:
     depends_on:
       - mcpo
@@ -274,3 +303,9 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ollama-gateway-data/mysql
+  codex-proxy-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ai/codex-proxy/data

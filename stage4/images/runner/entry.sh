@@ -34,6 +34,29 @@ if [ -z "$token" ]; then
     exit 1
 fi
 
+if [ -z "${REGISTRY_HOST:-}" ] || [ -z "${REGISTRY_VERIFICATION_IMAGE:-}" ] || \
+   [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_PASSWORD:-}" ]; then
+    echo "Registry host, verification image, username, or password is missing."
+    exit 1
+fi
+
+echo "Logging in to $REGISTRY_HOST as gitlab-runner..."
+if ! printf '%s' "$DOCKERHUB_PASSWORD" | \
+    sudo -H -u gitlab-runner docker login "$REGISTRY_HOST" \
+        --username "$DOCKERHUB_USERNAME" \
+        --password-stdin > /dev/null; then
+    echo "Failed to log in to $REGISTRY_HOST."
+    exit 1
+fi
+
+echo "Verifying access to $REGISTRY_HOST/$REGISTRY_VERIFICATION_IMAGE..."
+if ! sudo -H -u gitlab-runner docker manifest inspect \
+    "$REGISTRY_HOST/$REGISTRY_VERIFICATION_IMAGE" > /dev/null; then
+    echo "Registry login succeeded, but the runner cannot read the verification image."
+    exit 1
+fi
+echo "Registry access verified."
+
 echo "Registering runner with token $token with name $HOSTNAME"
 gitlab-runner register \
     --name "$HOSTNAME" \

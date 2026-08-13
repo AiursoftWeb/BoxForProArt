@@ -39,7 +39,7 @@ fi
 echo "GitLab server $gitlab_endpoint is reachable"
 
 echo "Reading token from environment variable GITLAB_RUNNER_TOKEN ..."
-token=$(echo $GITLAB_RUNNER_TOKEN)
+token=${GITLAB_RUNNER_TOKEN:-}
 
 # If token is empty, exit
 if [ -z "$token" ]; then
@@ -70,7 +70,7 @@ if ! sudo -H -u gitlab-runner docker manifest inspect \
 fi
 echo "Registry access verified."
 
-echo "Registering runner with token $token with name $HOSTNAME"
+echo "Registering runner with name $HOSTNAME"
 gitlab-runner register \
     --name "$HOSTNAME" \
     --non-interactive \

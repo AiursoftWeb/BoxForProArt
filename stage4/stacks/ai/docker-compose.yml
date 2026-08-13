@@ -171,10 +171,7 @@ services:
     volumes:
       # 首次启动时从 AgentBot 的 Codex CLI 凭据只读导入；之后由
       # codex-proxy 在下方持久化目录中自行维护并刷新 token。
-      - type: bind
-        source: /swarm-vol/agent-bot/codex-home/auth.json
-        target: /home/appuser/.codex/auth.json
-        read_only: true
+      - codex-init-data:/home/appuser/.codex:ro
       - codex-proxy-data:/home/appuser/.codex-proxy
     networks:
       - internal

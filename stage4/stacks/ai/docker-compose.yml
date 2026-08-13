@@ -306,3 +306,9 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ai/codex-proxy/data
+  codex-init-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ai/codex-proxy/init

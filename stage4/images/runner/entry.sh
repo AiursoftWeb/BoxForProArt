@@ -19,11 +19,24 @@ fi
 gitlab_endpoint=${GITLAB_ENDPOINT:-http://gitlab}
 
 echo "Checking if GitLab server $gitlab_endpoint is reachable"
-if ! curl -s --max-time 10 $gitlab_endpoint > /dev/null; then
-    echo "GitLab server is not reachable. Exiting..."
+gitlab_ready=false
+for attempt in $(seq 1 120); do
+    if curl -fsS --max-time 10 "$gitlab_endpoint" > /dev/null; then
+        gitlab_ready=true
+        break
+    fi
+
+    if [ "$attempt" -eq 1 ] || [ $((attempt % 12)) -eq 0 ]; then
+        echo "GitLab server is not reachable yet (attempt $attempt/120); retrying in 5 seconds..."
+    fi
+    sleep 5
+done
+
+if [ "$gitlab_ready" != true ]; then
+    echo "GitLab server did not become reachable within 10 minutes. Exiting..."
     exit 1
 fi
-echo "GitLab server: $gitlab_endpoint is reachable"
+echo "GitLab server $gitlab_endpoint is reachable"
 
 echo "Reading token from environment variable GITLAB_RUNNER_TOKEN ..."
 token=$(echo $GITLAB_RUNNER_TOKEN)

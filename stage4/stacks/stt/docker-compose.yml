@@ -11,6 +11,7 @@ services:
       - ASR_WHISPERX_TOKEN={{ASR_WHISPERX_TOKEN}}
       - ASR_WHISPERX_URL=http://whisperx:8000
       - ASR_WHISPERX_SINGLE_MODEL=true
+      - ASR_TRANSCRIPTION_TIMEOUT_SECONDS=7200
     networks:
       - proxy_app
       - internal

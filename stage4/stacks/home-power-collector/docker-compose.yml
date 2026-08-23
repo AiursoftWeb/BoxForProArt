@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  collector:
+    image: localhost:8080/box_starting/home_power_collector:latest
+    environment:
+      HOME_ASSISTANT_URL: "http://192.168.50.135:8123"
+      HOME_ASSISTANT_TOKEN: "{{HOME_ASSISTANT_TOKEN}}"
+      CLICKHOUSE_HOST: "clickhouse_clickhouse"
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_PROTOCOL: "http"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "123456"
+      CLICKHOUSE_DATABASE: "home_assistant"
+      CLICKHOUSE_SAMPLE_TABLE: "power_samples"
+      CLICKHOUSE_CATALOG_TABLE: "power_device_catalog"
+      SAMPLE_INTERVAL_SECONDS: "15"
+      NOMINAL_VOLTAGE: "220"
+      EXCLUDED_POWER_ENTITY_IDS: "sensor.iot_padw2p_4ab5_electric_power"
+      TZ: "Asia/Shanghai"
+    networks:
+      - clickhouse_net
+    stop_grace_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 30s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+      update_config:
+        order: start-first
+        delay: 5s
+
+networks:
+  clickhouse_net:
+    external: true

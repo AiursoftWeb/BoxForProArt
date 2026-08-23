@@ -723,6 +723,10 @@ print_ok "Building local runner..."
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
+print_ok "Building home power collector..."
+sudo docker build --network=host ./stage4/images/home-power-collector -t localhost:8080/box_starting/home_power_collector:latest
+sudo docker push localhost:8080/box_starting/home_power_collector:latest
+
 print_ok "Ensuring binfmt support for multi-arch builds..."
 if [ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
     print_ok "QEMU binfmt already registered in kernel. Skipping."

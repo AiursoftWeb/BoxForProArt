@@ -102,14 +102,15 @@ RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><
 RUN npm config set registry https://npm.aiursoft.com && \
     npm install -g typescript ts-node npm yarn --loglevel verbose
 
-# Install GitLab Runner
+# Install GitLab Runner as a standalone binary. The runner is launched directly
+# by entry.sh, so installing a systemd service inside this container is neither
+# needed nor valid. Keep the version pinned for reproducible image builds.
+ARG GITLAB_RUNNER_VERSION=v19.3.0
 RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
     set -eux; \
     download_dir=/var/cache/gitlab-runner-downloads; \
-    base_url=https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/latest/deb; \
-    packages="gitlab-runner-helper-images.deb gitlab-runner_amd64.deb"; \
-    download() { \
-      package=$1; \
+    runner_binary="gitlab-runner-linux-amd64-${GITLAB_RUNNER_VERSION}"; \
+    if [ ! -s "$download_dir/$runner_binary" ]; then \
       aria2c \
         --disable-ipv6=true \
         --continue=true \
@@ -124,14 +125,20 @@ RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
         --auto-file-renaming=false \
         --allow-overwrite=true \
         --dir="$download_dir" \
-        --out="$package" \
-        "$base_url/$package"; \
-    }; \
-    for package in $packages; do download "$package"; done; \
-    for package in $packages; do dpkg -i "$download_dir/$package"; done; \
-    for package in $packages; do \
-      rm -f "$download_dir/$package" "$download_dir/$package.aria2"; \
-    done
+        --out="$runner_binary" \
+        "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/${GITLAB_RUNNER_VERSION}/binaries/gitlab-runner-linux-amd64"; \
+    fi; \
+    install -m 0755 "$download_dir/$runner_binary" /usr/local/bin/gitlab-runner; \
+    ln -s /usr/local/bin/gitlab-runner /usr/local/bin/gitlab-ci-multi-runner; \
+    useradd \
+      --system \
+      --shell /bin/bash \
+      --comment 'GitLab Runner' \
+      --create-home \
+      --skel /dev/null \
+      gitlab-runner; \
+    install -d -m 0700 /etc/gitlab-runner; \
+    gitlab-runner --version
 
 # Install the one canonical Rust toolchain used by shell-executor jobs. The
 # setup script also cross-links an AArch64 binary, so a broken image fails here.

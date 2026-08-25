@@ -12,6 +12,8 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=aiurdrive;Uid=aiurdrive;Pwd=<aiurdrive_password>;
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
+      - Storage__PublicOrigin=https://drive-files.aiursoft.com
+      - Storage__RequireDedicatedInlineOrigin=true
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/aiurdrive
       - AppSettings__OIDC__ClientId={{AIURDRIVE_CLIENT_ID}}

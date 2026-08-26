@@ -14,6 +14,7 @@ services:
       - Storage__Path=/data/files
       - Storage__PublicOrigin=https://drive-files.aiursoft.com
       - Storage__RequireDedicatedInlineOrigin=true
+      - Storage__AllowArbitraryInlineOnDedicatedOrigin=true
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/aiurdrive
       - AppSettings__OIDC__ClientId={{AIURDRIVE_CLIENT_ID}}

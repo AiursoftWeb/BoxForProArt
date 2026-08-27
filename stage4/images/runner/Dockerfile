@@ -46,6 +46,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       ripgrep \
       sudo \
       python3-gi \
+      gir1.2-gstreamer-1.0 \
+      gir1.2-gst-plugins-base-1.0 \
       python3-pip \
       python3-unidecode \
       shellcheck \

@@ -8,6 +8,8 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       - TZ=UTC
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_SERVER_ROOT_URL=https://grafana-proart.aiursoft.com
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME=Authentik

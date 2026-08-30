@@ -58,23 +58,6 @@ services:
         order: stop-first
         delay: 60s
 
-  frpc_hk:
-    image: localhost:8080/box_starting/local_frp
-    networks:
-      - frp_net
-    environment:
-      - FRP_SERVER={{FRP_SERVER_HK}}
-      - FRP_TOKEN={{FRP_TOKEN}}
-    stop_grace_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '4.0'
-          memory: 8G
-      update_config:
-        order: stop-first
-        delay: 60s
-
   frpc_ningbo:
     image: localhost:8080/box_starting/local_frp
     networks:
@@ -97,7 +80,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - SERVICE_NAMES=frpc_ningbo frpc_hk
+      - SERVICE_NAMES=frpc_ningbo
     stop_grace_period: 10s
     deploy:
       resources:

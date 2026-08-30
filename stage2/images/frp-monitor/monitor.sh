@@ -5,7 +5,7 @@
 TAIL_LINES=20
 THRESHOLD=3
 PATTERN="i/o deadline reached"
-# Space-separated list of service names to watch, e.g. "frpc_ningbo frpc_hk"
+# Space-separated list of service names to watch, e.g. "frpc_ningbo"
 SERVICE_NAMES="${SERVICE_NAMES:-frpc_ningbo}"
 CHECK_INTERVAL=60
 

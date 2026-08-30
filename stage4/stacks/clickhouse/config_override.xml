@@ -11,6 +11,8 @@
     <asynchronous_metric_log remove="1"/>
     <session_log remove="1"/>
     <text_log remove="1"/>
-    <crash_dump_size_limit>0</crash_dump_size_limit>
+    <core_dump>
+        <size_limit>0</size_limit>
+    </core_dump>
     <max_server_memory_usage_to_ram_ratio>0.9</max_server_memory_usage_to_ram_ratio>
 </clickhouse>

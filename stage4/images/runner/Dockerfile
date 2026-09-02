@@ -12,7 +12,11 @@ RUN apt update && apt install -y curl ca-certificates apt-transport-https && \
 WORKDIR /app
 
 # Install regctl
-RUN curl -m 50 -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 -o /usr/local/bin/regctl && \
+RUN curl --fail --show-error --location \
+    --connect-timeout 20 --max-time 300 \
+    --retry 5 --retry-delay 5 --retry-all-errors \
+    https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 \
+    -o /usr/local/bin/regctl && \
     chmod 755 /usr/local/bin/regctl
 
 ENV PYTHONUNBUFFERED=1 \

@@ -24,13 +24,13 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/zot-data/blob
+      device: /swarm-vol/ssd/zot-data/blob
   zot-config:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/zot-data/config
+      device: /swarm-vol/ssd/zot-data/config
 
 networks:
   net:

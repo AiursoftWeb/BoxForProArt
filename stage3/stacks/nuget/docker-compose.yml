@@ -60,19 +60,19 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/baget/aspnet
+      device: /swarm-vol/ssd/baget/aspnet
   data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/baget/data
+      device: /swarm-vol/ssd/baget/data
   db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/baget/db
+      device: /swarm-vol/ssd/baget/db
 
 networks:
   proxy_app:

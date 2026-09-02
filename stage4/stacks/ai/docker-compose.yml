@@ -263,52 +263,52 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/ollama/data
+      device: /swarm-vol/ssd/ai/ollama/data
   code-runner-aspnet-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/code-runner/aspnet
+      device: /swarm-vol/ssd/ai/code-runner/aspnet
   mcpo-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/mcpo
+      device: /swarm-vol/ssd/ai/mcpo
   open-webui-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/open-webui/data
+      device: /swarm-vol/ssd/ai/open-webui/data
   ollama-gateway-files:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ollama-gateway-data/files
+      device: /swarm-vol/ssd/ollama-gateway-data/files
   ollama-gateway-aspnet:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ollama-gateway-data/aspnet
+      device: /swarm-vol/ssd/ollama-gateway-data/aspnet
   ollama-gateway-db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ollama-gateway-data/mysql
+      device: /swarm-vol/ssd/ollama-gateway-data/mysql
   codex-proxy-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/codex-proxy/data
+      device: /swarm-vol/ssd/ai/codex-proxy/data
   codex-init-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ai/codex-proxy/init
+      device: /swarm-vol/ssd/ai/codex-proxy/init

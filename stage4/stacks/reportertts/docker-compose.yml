@@ -27,7 +27,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/reportertts/data
+      device: /swarm-vol/ssd/reportertts/data
 
 networks:
   proxy_app:

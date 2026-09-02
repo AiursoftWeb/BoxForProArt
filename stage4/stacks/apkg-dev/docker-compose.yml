@@ -65,13 +65,13 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/apkg-dev-data
+      device: /swarm-vol/ssd/apkg-dev-data
   apkg-dev-db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/apkg-dev-data/mysql
+      device: /swarm-vol/ssd/apkg-dev-data/mysql
 
 networks:
   proxy_app:

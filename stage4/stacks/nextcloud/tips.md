@@ -19,12 +19,12 @@ WEB_CONTAINER_ID=$(sudo docker ps | grep nextcloud_web | awk '{print $1}')
 
 ## Sync data
 
-cd /swarm-vol/nextcloud/data
+cd /swarm-vol/ssd/nextcloud/data
 rsync -Aavx --update --delete root@nextcloud:/mnt/datastorage/data/* .
 
 ## Sync apps
 
-cd /swarm-vol/nextcloud/apps
+cd /swarm-vol/ssd/nextcloud/apps
 rsync -Aavx --update --delete root@nextcloud:/var/www/html/nextcloud/apps/ .
 
 ## Backup DB

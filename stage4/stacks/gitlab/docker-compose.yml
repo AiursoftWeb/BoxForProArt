@@ -239,37 +239,37 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitlab/data
+      device: /swarm-vol/ssd/gitlab/data
   gitlab-log:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitlab/log
+      device: /swarm-vol/ssd/gitlab/log
   gitlab-config:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitlab/config
+      device: /swarm-vol/ssd/gitlab/config
   agent-bot-workspace:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/agent-bot/workspace
+      device: /swarm-vol/ssd/agent-bot/workspace
   agent-bot-log:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/agent-bot/log
+      device: /swarm-vol/ssd/agent-bot/log
   agent-bot-codex-home:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/agent-bot/codex-home
+      device: /swarm-vol/ssd/agent-bot/codex-home
 
 networks:
   proxy_app:

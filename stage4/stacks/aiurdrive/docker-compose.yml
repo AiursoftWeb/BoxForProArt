@@ -68,19 +68,19 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/aiurdrive-data/files
+      device: /swarm-vol/hdd/aiurdrive-data/files
   aiurdrive-aspnet:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/aiurdrive-data/aspnet
+      device: /swarm-vol/ssd/aiurdrive-data/aspnet
   aiurdrive-db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/aiurdrive-data/mysql
+      device: /swarm-vol/ssd/aiurdrive-data/mysql
 
 networks:
   proxy_app:

@@ -52,10 +52,10 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/grafana-data/grafana-config
+      device: /swarm-vol/ssd/grafana-data/grafana-config
   grafana-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/grafana-data/grafana-data
+      device: /swarm-vol/ssd/grafana-data/grafana-data

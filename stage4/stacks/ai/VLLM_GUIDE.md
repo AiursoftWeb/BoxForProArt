@@ -28,7 +28,7 @@ sudo docker run -d --name vllm-35b-moe \
   --restart always \
   --gpus all \
   --ipc=host \
-  -v /swarm-vol/ai/vllm/root:/root/.cache/huggingface \
+  -v /swarm-vol/ssd/ai/vllm/root:/root/.cache/huggingface \
   -p 8000:8000 \
   -e HF_ENDPOINT=https://hf-mirror.com \
   hub.aiursoft.com/vllm/vllm-openai:latest \
@@ -50,7 +50,7 @@ sudo docker run -d --name vllm-35b-gguf \
   --restart always \
   --gpus all \
   --ipc=host \
-  -v /swarm-vol/ai/vllm/root:/root/.cache/huggingface \
+  -v /swarm-vol/ssd/ai/vllm/root:/root/.cache/huggingface \
   -p 8000:8000 \
   hub.aiursoft.com/vllm/vllm-openai:latest \
   --model /root/.cache/huggingface/qwen35.gguf \

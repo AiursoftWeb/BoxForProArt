@@ -65,19 +65,19 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitmirror-data/aspnet
+      device: /swarm-vol/ssd/gitmirror-data/aspnet
   gitmirror-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitmirror-data/data
+      device: /swarm-vol/ssd/gitmirror-data/data
   gitmirror-db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/gitmirror-data/db
+      device: /swarm-vol/ssd/gitmirror-data/db
 
 networks:
   proxy_app:

@@ -75,4 +75,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ninja-data/cache
+      device: /swarm-vol/ssd/ninja-data/cache

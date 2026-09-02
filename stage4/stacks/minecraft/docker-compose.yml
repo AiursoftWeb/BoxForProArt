@@ -42,31 +42,31 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/mc/world
+      device: /swarm-vol/ssd/mc/world
   world-nether:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/mc/world_nether
+      device: /swarm-vol/ssd/mc/world_nether
   world-the-end:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/mc/world_the_end
+      device: /swarm-vol/ssd/mc/world_the_end
   dynmap:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/mc/dynmap
+      device: /swarm-vol/ssd/mc/dynmap
   mc-log:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/mc/log
+      device: /swarm-vol/ssd/mc/log
 
 networks:
   frp_net:

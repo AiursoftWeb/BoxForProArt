@@ -166,28 +166,28 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/nextcloud/db
+      device: /swarm-vol/ssd/nextcloud/db
   nextcloud-redis:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/nextcloud/redis
+      device: /swarm-vol/ssd/nextcloud/redis
   nextcloud-config:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/nextcloud/config
+      device: /swarm-vol/ssd/nextcloud/config
   nextcloud-custom-apps:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/nextcloud/custom_apps
+      device: /swarm-vol/ssd/nextcloud/custom_apps
   nextcloud-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/nextcloud/data
+      device: /swarm-vol/ssd/nextcloud/data

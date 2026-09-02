@@ -96,7 +96,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/sites-data
+      device: /swarm-vol/ssd/sites-data
 
 networks:
   proxy_app:

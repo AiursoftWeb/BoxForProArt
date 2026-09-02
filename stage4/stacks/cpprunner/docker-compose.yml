@@ -67,19 +67,19 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/cpprunner/aspnet
+      device: /swarm-vol/ssd/cpprunner/aspnet
   cpprunner-files:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/cpprunner/files
+      device: /swarm-vol/ssd/cpprunner/files
   cpprunner-db:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/cpprunner/mysql
+      device: /swarm-vol/ssd/cpprunner/mysql
 
 networks:
   proxy_app:

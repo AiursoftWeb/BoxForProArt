@@ -51,16 +51,16 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/jellyfin/config
+      device: /swarm-vol/ssd/jellyfin/config
   cache-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/jellyfin/cache
+      device: /swarm-vol/ssd/jellyfin/cache
   media-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/jellyfin/media
+      device: /swarm-vol/hdd/jellyfin/media

@@ -46,7 +46,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/registry-data
+      device: /swarm-vol/ssd/registry-data
 
 networks:
   net:

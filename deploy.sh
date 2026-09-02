@@ -160,6 +160,59 @@ function ensure_packages_needed_ready() {
     ensure_docker_ready
 }
 
+function ensure_storage_mounts_ready() {
+    local system_source
+    local namespace_source
+    local ssd_source
+    local hdd_source
+
+    print_info "Verifying system, SSD, and HDD storage roles..."
+    if ! mountpoint -q /swarm-vol/ssd; then
+        print_error "/swarm-vol/ssd is not a mount point. Refusing to start Docker."
+        exit 1
+    fi
+    if ! mountpoint -q /swarm-vol/hdd; then
+        print_error "/swarm-vol/hdd is not a mount point. Refusing to start Docker."
+        exit 1
+    fi
+
+    system_source=$(findmnt -n -o SOURCE --target /)
+    namespace_source=$(findmnt -n -o SOURCE --target /swarm-vol)
+    ssd_source=$(findmnt -n -o SOURCE --mountpoint /swarm-vol/ssd)
+    hdd_source=$(findmnt -n -o SOURCE --mountpoint /swarm-vol/hdd)
+    if [ "$namespace_source" != "$system_source" ]; then
+        print_error "/swarm-vol must live on the system filesystem ($system_source), got $namespace_source."
+        exit 1
+    fi
+    if [ "$ssd_source" = "$hdd_source" ] || [ "$ssd_source" = "$system_source" ] || [ "$hdd_source" = "$system_source" ]; then
+        print_error "System, SSD, and HDD storage roles must resolve to three distinct filesystems."
+        exit 1
+    fi
+    if [ ! -f /swarm-vol/.proart-storage-role-system ] || \
+       [ ! -f /swarm-vol/ssd/.proart-storage-role-ssd ] || \
+       [ ! -f /swarm-vol/hdd/.proart-storage-role-hdd ]; then
+        print_error "One or more Proart storage role markers are missing."
+        exit 1
+    fi
+    print_ok "Storage roles are ready: SYSTEM=$system_source, SSD=$ssd_source, HDD=$hdd_source"
+
+    sudo install -d /etc/systemd/system/docker.service.d
+    sudo tee /etc/systemd/system/docker.service.d/storage-mounts.conf > /dev/null <<'EOF'
+[Unit]
+RequiresMountsFor=/swarm-vol/ssd /swarm-vol/hdd
+ConditionPathIsMountPoint=/swarm-vol/ssd
+ConditionPathIsMountPoint=/swarm-vol/hdd
+EOF
+
+    sudo install -d /etc/systemd/system/containerd.service.d
+    sudo tee /etc/systemd/system/containerd.service.d/storage-mounts.conf > /dev/null <<'EOF'
+[Unit]
+RequiresMountsFor=/swarm-vol/containerd-data
+EOF
+
+    sudo systemctl daemon-reload
+}
+
 function ensure_nvidia_gpu() {
     # ensure /usr/bin/nvidia-smi exists
     if [ ! -f /usr/bin/nvidia-smi ]; then
@@ -229,7 +282,7 @@ set -euo pipefail
 
 TRIGGER_MB=512000
 SAFE_MB=460800
-DOCKER_DIR="/var/lib/docker"
+DOCKER_DIR="/swarm-vol/docker-data"
 MOTD_FILE="/etc/motd"
 WARN_MSG="[CRITICAL] Docker disk usage is extremely high (>450GB). Please check."
 
@@ -277,6 +330,7 @@ EOF
 Description=Check Docker disk usage and prune if necessary
 After=docker.service
 Requires=docker.service
+RequiresMountsFor=/swarm-vol/docker-data
 
 [Service]
 Type=oneshot
@@ -393,6 +447,9 @@ function deploy() {
     # Clean up the temporary file
     rm "$temp_compose_file"
 }
+
+# Refuse to start or configure Docker unless both storage tiers are mounted.
+ensure_storage_mounts_ready
 
 # Ensure packages needed are ready
 if [ "$TARGET_STAGE" -le 0 ]; then
@@ -737,10 +794,10 @@ else
     ls /proc/sys/fs/binfmt_misc/ | grep qemu || true
 fi
 
-# /swarm-vol/click-house/config_override.xml
+# /swarm-vol/ssd/click-house/config_override.xml
 print_ok "Copying ClickHouse config override file..."
-sudo cp ./stage4/stacks/clickhouse/users_override.xml /swarm-vol/click-house/users_override.xml || true
-sudo cp ./stage4/stacks/clickhouse/config_override.xml /swarm-vol/click-house/config_override.xml || true
+sudo cp ./stage4/stacks/clickhouse/users_override.xml /swarm-vol/ssd/click-house/users_override.xml || true
+sudo cp ./stage4/stacks/clickhouse/config_override.xml /swarm-vol/ssd/click-house/config_override.xml || true
 judge "Copying ClickHouse config override file"
 
 print_ok "Deploying business stacks..."

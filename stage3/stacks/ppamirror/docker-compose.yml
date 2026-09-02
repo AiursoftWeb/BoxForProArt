@@ -23,7 +23,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/ppamirror-data/data
+      device: /swarm-vol/ssd/ppamirror-data/data
 
 networks:
   proxy_app:

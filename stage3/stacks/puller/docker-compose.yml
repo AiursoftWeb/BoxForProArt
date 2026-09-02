@@ -65,22 +65,22 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/puller-data/sync_records
+      device: /swarm-vol/ssd/puller-data/sync_records
   sync_records_cn:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/puller-data/sync_records_cn
+      device: /swarm-vol/ssd/puller-data/sync_records_cn
   run_logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/puller-data/run_logs
+      device: /swarm-vol/ssd/puller-data/run_logs
   run_logs_cn:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/puller-data/run_logs_cn
+      device: /swarm-vol/ssd/puller-data/run_logs_cn

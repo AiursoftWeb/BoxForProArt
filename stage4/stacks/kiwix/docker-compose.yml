@@ -51,7 +51,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/wiki-data
+      device: /swarm-vol/hdd/wiki-data
 
 networks:
   proxy_app:

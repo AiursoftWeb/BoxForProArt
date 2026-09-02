@@ -212,34 +212,34 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/upload
+      device: /swarm-vol/hdd/immich/upload
   external:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/external
+      device: /swarm-vol/hdd/immich/external
   model-cache:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/model-cache
+      device: /swarm-vol/ssd/immich/model-cache
   db-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/db-data
+      device: /swarm-vol/ssd/immich/db-data
   redis:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/redis
+      device: /swarm-vol/ssd/immich/redis
   ranking-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /swarm-vol/immich/ranking-data
+      device: /swarm-vol/ssd/immich/ranking-data

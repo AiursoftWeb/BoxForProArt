@@ -276,11 +276,10 @@ EOF
 [Unit]
 Description=Check Docker disk usage and prune if necessary
 After=docker.service
-Requires=docker.service
-RequiresMountsFor=/swarm-vol/docker-data
 
 [Service]
 Type=oneshot
+ExecCondition=/usr/bin/systemctl is-active --quiet docker.service
 ExecStart=$MONITOR_PATH
 User=root
 EOF

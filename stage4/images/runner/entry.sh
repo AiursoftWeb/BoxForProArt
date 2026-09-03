@@ -21,7 +21,7 @@ runner_builds_dir="/runner-data/$HOSTNAME/builds"
 runner_cache_dir="/runner-data/$HOSTNAME/cache"
 
 mkdir -p "$runner_builds_dir" "$runner_cache_dir"
-chown -R gitlab-runner:gitlab-runner "/runner-data/$HOSTNAME"
+chown gitlab-runner:gitlab-runner "/runner-data/$HOSTNAME" "$runner_builds_dir" "$runner_cache_dir"
 
 echo "Checking if GitLab server $gitlab_endpoint is reachable"
 gitlab_ready=false

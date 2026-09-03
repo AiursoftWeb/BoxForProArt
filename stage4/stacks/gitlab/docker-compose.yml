@@ -129,6 +129,7 @@ services:
     image: localhost:8080/box_starting/local_runner:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab-runner-data:/runner-data
     environment:
       # Use public endpoint so the jobrunner can access GitLab.
       # The actual jobrunner will not use the internal endpoint.
@@ -166,6 +167,7 @@ services:
     image: localhost:8080/box_starting/local_runner:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab-runner-data:/runner-data
     environment:
       - GITLAB_ENDPOINT=http://gitlab
       - GITLAB_RUNNER_TOKEN={{GITLAB_RUNNER_TOKEN_FOR_GROUP}}
@@ -252,6 +254,12 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ssd/gitlab/config
+  gitlab-runner-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/gitlab/runner-data
   agent-bot-workspace:
     driver: local
     driver_opts:

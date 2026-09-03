@@ -17,6 +17,11 @@ fi
 
 # Load from environment variables
 gitlab_endpoint=${GITLAB_ENDPOINT:-http://gitlab}
+runner_builds_dir="/runner-data/$HOSTNAME/builds"
+runner_cache_dir="/runner-data/$HOSTNAME/cache"
+
+mkdir -p "$runner_builds_dir" "$runner_cache_dir"
+chown -R gitlab-runner:gitlab-runner "/runner-data/$HOSTNAME"
 
 echo "Checking if GitLab server $gitlab_endpoint is reachable"
 gitlab_ready=false
@@ -77,6 +82,8 @@ gitlab-runner register \
     --url "$gitlab_endpoint" \
     --token "$token" \
     --executor "shell" \
+    --builds-dir "$runner_builds_dir" \
+    --cache-dir "$runner_cache_dir" \
     --custom_build_dir-enabled=true \
     --env "DOCKER_USERNAME=${DOCKER_USERNAME}" \
     --env "DOCKER_PASSWORD=${DOCKER_PASSWORD}" \

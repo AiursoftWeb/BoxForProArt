@@ -207,8 +207,6 @@ better_performance() {
     print_ok "Setting system timezone to UTC..."
     sudo timedatectl set-timezone UTC
 
-    print_ok "Setting up swap file equal to physical RAM size..."
-    curl -s https://raw.githubusercontent.com/Anduin2017/Init-Server/refs/heads/master/autoswap.sh | sudo bash
 }
 
 function setup_docker_auto_clean() {

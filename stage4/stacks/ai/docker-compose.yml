@@ -130,6 +130,9 @@ services:
       - /tmp:/tmp
     environment:
       - DockerImageSettings__Prefix=hub.aiursoft.com
+      - DockerImageSettings__RequireAuthentication=true
+      - DockerImageSettings__Username={{DOCKERHUB_USERNAME}}
+      - DockerImageSettings__Password={{DOCKERHUB_PASSWORD}}
     networks:
       - internal
     stop_grace_period: 20s

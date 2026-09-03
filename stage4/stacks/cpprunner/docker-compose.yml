@@ -12,6 +12,9 @@ services:
       - /tmp:/tmp
     environment:
       - DockerImageSettings__Prefix=hub.aiursoft.com
+      - DockerImageSettings__RequireAuthentication=true
+      - DockerImageSettings__Username={{DOCKERHUB_USERNAME}}
+      - DockerImageSettings__Password={{DOCKERHUB_PASSWORD}}
       - ConnectionStrings__DefaultConnection=Server=db;Database=cpprunner;Uid=cpprunner;Pwd=<cpprunner_password>;
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files

@@ -305,6 +305,8 @@ images=(
     "gitea/gitea"
     "gitlab/gitlab-ce"
     "gitlab/gitlab-ee"
+    #docker pull gitlab/gitlab-ee:19.3.0-ee.0
+    "gitlab/gitlab-ee:19.3.0-ee.0"
     "gitlab/gitlab-ee:19.0.1-ee.0"
     "golang"
     "golang:1.21.5"

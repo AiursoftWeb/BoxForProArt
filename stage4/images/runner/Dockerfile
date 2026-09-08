@@ -173,8 +173,11 @@ COPY setup-rust-toolchain.sh /usr/local/sbin/setup-rust-toolchain
 RUN chmod 0755 /usr/local/sbin/setup-rust-toolchain && \
     /usr/local/sbin/setup-rust-toolchain
 
-# Enable docker in docker & configure passwordless sudo
-RUN usermod -aG docker root && \
+# Match the image's docker group to the host socket without changing the
+# host-owned socket from inside the runner container.
+ARG HOST_DOCKER_GID=120
+RUN groupmod --gid "$HOST_DOCKER_GID" docker && \
+    usermod -aG docker root && \
     usermod -aG docker gitlab-runner && \
     usermod -aG sudo gitlab-runner && \
     echo "gitlab-runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

@@ -3,12 +3,16 @@ set -e
 
 echo "Starting GitLab Runner registration script..."
 
-# Make sure the docker.sock has correct permissions
+# The host owns docker.sock. The image is built with the host docker GID, so
+# validate access here without mutating the host socket from the container.
 if [ -S /var/run/docker.sock ]; then
-    echo "Docker socket found, adjusting permissions..."
-    # We need that socket to create new job containers
-    chown root:docker /var/run/docker.sock || true
-    chmod 660 /var/run/docker.sock
+    echo "Docker socket found, validating runner access..."
+    if ! runuser --user gitlab-runner -- test -r /var/run/docker.sock ||
+       ! runuser --user gitlab-runner -- test -w /var/run/docker.sock; then
+        echo "Error: gitlab-runner cannot access /var/run/docker.sock."
+        echo "Rebuild the runner image with HOST_DOCKER_GID matching the host docker group."
+        exit 1
+    fi
 else
     echo "Error: Docker socket (/var/run/docker.sock) not found."
     echo "Please ensure you pass '-v /var/run/docker.sock:/var/run/docker.sock' when running this container."

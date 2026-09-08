@@ -137,8 +137,6 @@ services:
       - /etc/gitlab-runner:size=16m,mode=0700
       - /data:size=64m,mode=0777
       - /home/gitlab-runner/.cache:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.cargo/git:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.cargo/registry:size=4096m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.config:size=64m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.docker:size=16m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.dotnet:size=1024m,uid=996,gid=991,mode=0700
@@ -191,8 +189,6 @@ services:
       - /etc/gitlab-runner:size=16m,mode=0700
       - /data:size=64m,mode=0777
       - /home/gitlab-runner/.cache:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.cargo/git:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.cargo/registry:size=4096m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.config:size=64m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.docker:size=16m,uid=996,gid=991,mode=0700
       - /home/gitlab-runner/.dotnet:size=1024m,uid=996,gid=991,mode=0700

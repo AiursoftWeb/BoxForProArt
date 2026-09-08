@@ -96,6 +96,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
+        printf '\nhsts-file = /tmp/wget-hsts\n' >> /etc/wgetrc && \
     rm -rf /var/lib/apt/lists/*
 
 # ARM64 cross-compilation toolchain for Rust/GTK applications

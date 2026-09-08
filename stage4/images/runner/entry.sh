@@ -87,6 +87,7 @@ gitlab-runner register \
     --builds-dir "/runner-data/$HOSTNAME/builds" \
     --cache-dir "/runner-data/$HOSTNAME/cache" \
     --custom_build_dir-enabled=true \
+    --env "CARGO_HOME=/home/gitlab-runner/.cache/cargo" \
     --env "DOCKER_USERNAME=${DOCKER_USERNAME}" \
     --env "DOCKER_PASSWORD=${DOCKER_PASSWORD}" \
     --env "LOCAL_DOCKER_USERNAME=${DOCKERHUB_USERNAME}" \

@@ -131,27 +131,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - gitlab-runner-data:/runner-data
-      - type: tmpfs
-        target: /tmp
-        tmpfs:
-          size: 4294967296
-          mode: 01777
-      - type: tmpfs
-        target: /etc/gitlab-runner
-        tmpfs:
-          size: 16777216
-          mode: 0700
-      - type: tmpfs
-        target: /data
-        tmpfs:
-          size: 67108864
-          mode: 0777
-      - type: tmpfs
-        target: /home/gitlab-runner/.docker
-        tmpfs:
-          size: 16777216
-          mode: 0700
-    read_only: true
     environment:
       # Use public endpoint so the jobrunner can access GitLab.
       # The actual jobrunner will not use the internal endpoint.
@@ -191,27 +170,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - gitlab-runner-data:/runner-data
-      - type: tmpfs
-        target: /tmp
-        tmpfs:
-          size: 4294967296
-          mode: 01777
-      - type: tmpfs
-        target: /etc/gitlab-runner
-        tmpfs:
-          size: 16777216
-          mode: 0700
-      - type: tmpfs
-        target: /data
-        tmpfs:
-          size: 67108864
-          mode: 0777
-      - type: tmpfs
-        target: /home/gitlab-runner/.docker
-        tmpfs:
-          size: 16777216
-          mode: 0700
-    read_only: true
     environment:
       - GITLAB_ENDPOINT=http://gitlab
       - GITLAB_RUNNER_TOKEN={{GITLAB_RUNNER_TOKEN_FOR_GROUP}}

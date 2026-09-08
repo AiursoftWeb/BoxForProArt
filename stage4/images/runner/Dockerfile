@@ -96,7 +96,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       libadwaita-1-dev && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
-        printf '\nhsts-file = /tmp/wget-hsts\n' >> /etc/wgetrc && \
     rm -rf /var/lib/apt/lists/*
 
 # ARM64 cross-compilation toolchain for Rust/GTK applications
@@ -174,19 +173,15 @@ COPY setup-rust-toolchain.sh /usr/local/sbin/setup-rust-toolchain
 RUN chmod 0755 /usr/local/sbin/setup-rust-toolchain && \
     /usr/local/sbin/setup-rust-toolchain
 
-# Match the image's docker group to the host socket without changing the
-# host-owned socket from inside the runner container.
-ARG HOST_DOCKER_GID=120
-RUN groupmod --gid "$HOST_DOCKER_GID" docker && \
+# Match the docker group to the ProArt host without changing the host socket.
+RUN groupmod --gid 120 docker && \
     usermod -aG docker root && \
     usermod -aG docker gitlab-runner && \
     usermod -aG sudo gitlab-runner && \
     echo "gitlab-runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create a directory for data
 COPY entry.sh /app/entry.sh
-RUN mkdir /data && chmod 777 /data && \
-    chmod +x /app/entry.sh
+RUN chmod +x /app/entry.sh
 
 # Inject Docker hijack script
 COPY hijack_docker.sh /usr/local/bin/docker

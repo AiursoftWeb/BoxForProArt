@@ -718,16 +718,7 @@ sleep 3
 login_to_hub "$(get_env_value "REGISTRY_HOST")" "$(get_env_value "REGISTRY_VERIFICATION_IMAGE")"
 
 print_ok "Building local runner..."
-runner_docker_gid=$(getent group docker | cut -d: -f3)
-if [[ ! "$runner_docker_gid" =~ ^[0-9]+$ ]]; then
-    print_error "Could not determine the host docker group GID."
-    exit 1
-fi
-sudo docker build \
-    --network=host \
-    --build-arg "HOST_DOCKER_GID=$runner_docker_gid" \
-    ./stage4/images/runner \
-    -t localhost:8080/box_starting/local_runner:latest
+sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
 print_ok "Building home power collector..."

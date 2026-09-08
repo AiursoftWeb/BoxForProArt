@@ -3,18 +3,13 @@ set -e
 
 echo "Starting GitLab Runner registration script..."
 
-# The host owns docker.sock. The image is built with the host docker GID, so
-# validate access here without mutating the host socket from the container.
+# Validate access without changing the host-owned Docker socket.
 if [ -S /var/run/docker.sock ]; then
     echo "Docker socket found, validating runner access..."
-    stat -Lc 'Docker socket owner=%u group=%g mode=%a' /var/run/docker.sock
-    runuser --user gitlab-runner -- id
-    # A Swarm bind-mounted Unix socket can report false for shell test -r/-w
-    # even while the runner can use it. Probe the read-only Docker API instead.
     if ! runuser --user gitlab-runner -- \
         /usr/bin/docker version --format '{{.Server.Version}}' > /dev/null; then
         echo "Error: gitlab-runner cannot access /var/run/docker.sock."
-        echo "Rebuild the runner image with HOST_DOCKER_GID matching the host docker group."
+        echo "The runner image's docker group must match the host docker group."
         exit 1
     fi
 else
@@ -26,36 +21,11 @@ fi
 # Load from environment variables
 gitlab_endpoint=${GITLAB_ENDPOINT:-http://gitlab}
 
-runner_state="/runner-data/$HOSTNAME"
-runner_home="$runner_state/home"
-runner_tmp="$runner_state/tmp"
-for tmpfs_dir in \
-    /tmp \
-    /etc/gitlab-runner \
-    /data \
-    /home/gitlab-runner/.docker; do
-    if [ "$(stat -f -c %T "$tmpfs_dir")" != tmpfs ]; then
-        echo "Error: $tmpfs_dir is not backed by tmpfs."
-        exit 1
-    fi
-done
-
-# Docker Stack does not consistently preserve Compose tmpfs modes. Set the
-# effective permissions only after proving these paths are ephemeral mounts.
-chmod 01777 /tmp
-chmod 0700 /etc/gitlab-runner
-chmod 0777 /data
-
-for writable_dir in \
-    /home/gitlab-runner/.docker \
-    "$runner_state/builds" \
-    "$runner_state/cache" \
-    "$runner_home" \
-    "$runner_tmp"; do
-    mkdir -p "$writable_dir"
-    chown gitlab-runner:gitlab-runner "$writable_dir"
-    chmod 0700 "$writable_dir"
-done
+mkdir -p "/runner-data/$HOSTNAME/builds" "/runner-data/$HOSTNAME/cache"
+chown gitlab-runner:gitlab-runner \
+    "/runner-data/$HOSTNAME" \
+    "/runner-data/$HOSTNAME/builds" \
+    "/runner-data/$HOSTNAME/cache"
 
 echo "Checking if GitLab server $gitlab_endpoint is reachable"
 gitlab_ready=false
@@ -116,15 +86,9 @@ gitlab-runner register \
     --url "$gitlab_endpoint" \
     --token "$token" \
     --executor "shell" \
-    --builds-dir "$runner_state/builds" \
-    --cache-dir "$runner_state/cache" \
+    --builds-dir "/runner-data/$HOSTNAME/builds" \
+    --cache-dir "/runner-data/$HOSTNAME/cache" \
     --custom_build_dir-enabled=true \
-    --env "HOME=$runner_home" \
-    --env "TMPDIR=$runner_tmp" \
-    --env "CARGO_HOME=$runner_home/.cargo" \
-    --env "RUSTUP_HOME=/home/gitlab-runner/.rustup" \
-    --env "DOCKER_CONFIG=/home/gitlab-runner/.docker" \
-    --env "PATH=/home/gitlab-runner/.cargo/bin:$PATH" \
     --env "DOCKER_USERNAME=${DOCKER_USERNAME}" \
     --env "DOCKER_PASSWORD=${DOCKER_PASSWORD}" \
     --env "LOCAL_DOCKER_USERNAME=${DOCKERHUB_USERNAME}" \

@@ -23,6 +23,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_BREAK_SYSTEM_PACKAGES=1
 
+# Keep build and test dependencies in the runner image. Repository pipelines
+# must not mutate the runner at job time with apt installs.
 # Apt tools and Node.js setup
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get update && \
@@ -50,10 +52,28 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       jq \
       ripgrep \
       sudo \
+      bubblewrap \
+      dbus-daemon \
+      dconf-cli \
+      fontconfig \
+      gsettings-desktop-schemas \
+      netplan.io \
+      unattended-upgrades \
+      pango1.0-tools \
+      python3 \
       python3-gi \
+      python3-cairo \
+      python3-gi-cairo \
+      python3-apt \
       gir1.2-gstreamer-1.0 \
+      gir1.2-gtk-4.0 \
+      gir1.2-adw-1 \
+      gir1.2-nm-1.0 \
       libopencc1.1 \
       gir1.2-gst-plugins-base-1.0 \
+      gstreamer1.0-plugins-base \
+      gstreamer1.0-plugins-good \
+      gstreamer1.0-plugins-bad \
       python3-pip \
       python3-unidecode \
       shellcheck \

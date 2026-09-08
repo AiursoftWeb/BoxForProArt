@@ -52,7 +52,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       jq \
       ripgrep \
       sudo \
-      bubblewrap \
       dbus-daemon \
       dconf-cli \
       fontconfig \

@@ -307,8 +307,7 @@ images=(
     "gitlab/gitlab-ee"
     # Required upgrade stop before GitLab 19.3.x.
     "gitlab/gitlab-ee:19.2.5-ee.0"
-    #docker pull gitlab/gitlab-ee:19.3.0-ee.0
-    "gitlab/gitlab-ee:19.3.0-ee.0"
+    "gitlab/gitlab-ee:19.3.1-ee.0"
     "gitlab/gitlab-ee:19.0.1-ee.0"
     "golang"
     "golang:1.21.5"

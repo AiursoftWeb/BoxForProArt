@@ -131,19 +131,27 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - gitlab-runner-data:/runner-data
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 4294967296
+          mode: 01777
+      - type: tmpfs
+        target: /etc/gitlab-runner
+        tmpfs:
+          size: 16777216
+          mode: 0700
+      - type: tmpfs
+        target: /data
+        tmpfs:
+          size: 67108864
+          mode: 0777
+      - type: tmpfs
+        target: /home/gitlab-runner/.docker
+        tmpfs:
+          size: 16777216
+          mode: 0700
     read_only: true
-    tmpfs:
-      - /tmp:size=4096m,mode=1777
-      - /etc/gitlab-runner:size=16m,mode=0700
-      - /data:size=64m,mode=0777
-      - /home/gitlab-runner/.cache:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.config:size=64m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.docker:size=16m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.dotnet:size=1024m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.local:size=1024m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.npm:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.nuget:size=4096m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.ssh:size=16m,uid=996,gid=991,mode=0700
     environment:
       # Use public endpoint so the jobrunner can access GitLab.
       # The actual jobrunner will not use the internal endpoint.
@@ -183,19 +191,27 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - gitlab-runner-data:/runner-data
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 4294967296
+          mode: 01777
+      - type: tmpfs
+        target: /etc/gitlab-runner
+        tmpfs:
+          size: 16777216
+          mode: 0700
+      - type: tmpfs
+        target: /data
+        tmpfs:
+          size: 67108864
+          mode: 0777
+      - type: tmpfs
+        target: /home/gitlab-runner/.docker
+        tmpfs:
+          size: 16777216
+          mode: 0700
     read_only: true
-    tmpfs:
-      - /tmp:size=4096m,mode=1777
-      - /etc/gitlab-runner:size=16m,mode=0700
-      - /data:size=64m,mode=0777
-      - /home/gitlab-runner/.cache:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.config:size=64m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.docker:size=16m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.dotnet:size=1024m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.local:size=1024m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.npm:size=2048m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.nuget:size=4096m,uid=996,gid=991,mode=0700
-      - /home/gitlab-runner/.ssh:size=16m,uid=996,gid=991,mode=0700
     environment:
       - GITLAB_ENDPOINT=http://gitlab
       - GITLAB_RUNNER_TOKEN={{GITLAB_RUNNER_TOKEN_FOR_GROUP}}

@@ -180,6 +180,10 @@ RUN groupmod --gid 120 docker && \
     usermod -aG sudo gitlab-runner && \
     echo "gitlab-runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Container-aware application tests persist Data Protection keys under /data.
+# Shell-executor jobs run as gitlab-runner and cannot create this at filesystem root.
+RUN install -d -m 0750 -o gitlab-runner -g gitlab-runner /data
+
 COPY entry.sh /app/entry.sh
 RUN chmod +x /app/entry.sh
 

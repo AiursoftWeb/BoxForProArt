@@ -195,6 +195,34 @@ services:
         delay: 5s
         max_attempts: 3
 
+  open-terminal:
+    image: hub.aiursoft.com/ghcr.io/open-webui/open-terminal:latest
+    environment:
+      - OPEN_TERMINAL_API_KEY={{OPEN_TERMINAL_API_KEY}}
+    volumes:
+      - open-terminal-data:/home/user
+    networks:
+      - terminal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+      update_config:
+        order: stop-first
+        delay: 5s
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+
   open-webui:
     depends_on:
       - mcpo
@@ -229,11 +257,13 @@ services:
       - OAUTH_UPDATE_PICTURE_ON_LOGIN=True
       - OAUTH_UPDATE_EMAIL_ON_LOGIN=True
       - OAUTH_ALLOWED_ROLES=user
+      - 'TERMINAL_SERVER_CONNECTIONS=[{"id":"open-terminal","url":"http://open-terminal:8000","key":"{{OPEN_TERMINAL_API_KEY}}","name":"Open Terminal","auth_type":"bearer","config":{"access_grants":[]}}]'
     volumes:
       - open-webui-data:/app/backend/data
     networks:
       - proxy_app
       - internal
+      - terminal
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD-SHELL", "curl --silent --fail http://localhost:8080/health | grep -q '\"status\":true' || exit 1"]
@@ -259,6 +289,8 @@ networks:
     external: true
   clickhouse_net:
     external: true
+  terminal:
+    driver: overlay
 
 volumes:
   ollama-data:
@@ -285,6 +317,12 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ssd/ai/open-webui/data
+  open-terminal-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/ai/open-terminal/home
   ollama-gateway-files:
     driver: local
     driver_opts:

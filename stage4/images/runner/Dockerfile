@@ -78,6 +78,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       python3-pip \
       python3-unidecode \
       shellcheck \
+      grub2-common \
       dotnet10 \
       gettext \
       wget \
@@ -99,6 +100,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
+
+# AnduinOS package source tests validate generated GRUB syntax without
+# installing a bootloader or building a DEB inside the test job.
+RUN grub-script-check --version
 
 # ARM64 cross-compilation toolchain for Rust/GTK applications
 # No libclang*-arm64 packages here — they conflict with the AMD64 versions

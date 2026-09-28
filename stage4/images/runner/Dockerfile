@@ -85,6 +85,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       apt-utils \
       dpkg \
       appstream \
+      util-linux \
       librsvg2-bin \
       sassc \
       iproute2 \
@@ -207,4 +208,4 @@ RUN chmod +x /app/entry.sh
 COPY hijack_docker.sh /usr/local/bin/docker
 RUN chmod +x /usr/local/bin/docker
 
-ENTRYPOINT ["/bin/bash", "-c", "/app/entry.sh"]
+ENTRYPOINT ["/bin/bash", "/app/entry.sh"]

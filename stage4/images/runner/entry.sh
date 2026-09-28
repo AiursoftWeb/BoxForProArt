@@ -79,6 +79,12 @@ if ! sudo -H -u gitlab-runner docker manifest inspect \
 fi
 echo "Registry access verified."
 
+cleanup_dir="/runner-data/$HOSTNAME"
+cleanup_request="$cleanup_dir/.cleanup.request"
+exec 9>"$cleanup_dir/.cleanup.lock"
+flock -s 9
+touch "$cleanup_dir/.cleanup.ready"
+
 echo "Registering runner with name $HOSTNAME"
 gitlab-runner register \
     --name "$HOSTNAME" \
@@ -116,5 +122,40 @@ else
     su -s /bin/bash gitlab-runner -c "docker buildx inspect \"$BUILDER_NAME\"" | grep -E 'Status|Platforms'
 fi
 
-#gitlab-runner start
-gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner
+# Keep the shared lock while this runner can accept jobs. The cleaner requests a
+# graceful drain with .cleanup.request, then waits for the exclusive lock.
+trap 'kill -TERM "${runner_pid:-}" 2>/dev/null || true; exit 143' TERM INT
+while true; do
+    if [ -e "$cleanup_request" ]; then
+        flock -u 9
+        while [ -e "$cleanup_request" ]; do sleep 5; done
+        flock -s 9
+        continue
+    fi
+
+    gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner 9>&- &
+    runner_pid=$!
+    (
+        exec 9>&-
+        while kill -0 "$runner_pid" 2>/dev/null; do
+            if [ -e "$cleanup_request" ]; then
+                kill -QUIT "$runner_pid" 2>/dev/null || true
+                exit 0
+            fi
+            sleep 5
+        done
+    ) &
+    monitor_pid=$!
+
+    if wait "$runner_pid"; then
+        runner_status=0
+    else
+        runner_status=$?
+    fi
+    kill "$monitor_pid" 2>/dev/null || true
+    wait "$monitor_pid" 2>/dev/null || true
+
+    if [ ! -e "$cleanup_request" ]; then
+        exit "$runner_status"
+    fi
+done

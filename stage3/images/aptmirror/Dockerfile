@@ -1,6 +1,9 @@
 FROM localhost:8080/public_mirror/aiursoft/static
 
-RUN mkdir -p /data
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends cron && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /data
 
 COPY static-mirror-cleanup /etc/cron.d/static-mirror-cleanup
 

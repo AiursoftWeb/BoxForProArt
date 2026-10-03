@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 service cron start
 echo "Cron service has been started."

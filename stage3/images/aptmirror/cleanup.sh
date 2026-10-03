@@ -1,13 +1,13 @@
 #!/bin/sh
-# cleanup.sh - v5 (增加网络检查，修复 subshell 计数问题)
-# 删除作为目录缓存的 APT 元数据，并详细记录
+# Expire mutable APT metadata, including legacy extensionless-file directories.
+# Keep immutable by-hash entries and the package pool cached.
 
 log() {
     # 打印带时间戳的日志信息
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
 
-log "开始执行 APT 元数据清理任务 (目录模式)..."
+log "开始执行 APT 元数据清理任务..."
 
 # --- 新增网络检查 ---
 HOSTNAME_TO_CHECK="archive.ubuntu.com"
@@ -32,32 +32,37 @@ if [ ! -d "$CACHE_PATH" ]; then
     exit 0
 fi
 
-# 查找所有需要删除的目录，并将结果存入变量
-# -mindepth 2: 避免删除 dists 下的一级目录 (如 bionic, focal)
-# -type d: 只查找目录
-# \( ... \): 匹配多个名称模式
-dirs_to_delete=$(find "$CACHE_PATH" -mindepth 2 -type d \( -name "InRelease" -o -name "Release" -o -name "Release.gpg" -o -name "Packages*" -o -name "Sources*" -o -name "Contents-*" \))
+# Expire both new files and old directory/index.html cache entries. Prune
+# matching directories so their contents are not visited again. by-hash URLs
+# identify immutable content and must survive metadata refreshes.
+entries_to_delete=$(find "$CACHE_PATH" -mindepth 2 \
+    -type d -name "by-hash" -prune -o \
+    \( -type f -o -type d \) \
+    \( -name "InRelease" -o -name "Release" -o -name "Release.gpg" \
+       -o -name "Packages*" -o -name "Sources*" -o -name "Contents-*" \
+       -o -name "Translation-*" -o -name "Commands-*" \
+       -o -name "Components-*.yml*" -o -name "icons-*.tar*" \) \
+    -print -prune) || exit 1
 
 # 检查是否有需要删除的目录
-if [ -z "$dirs_to_delete" ]; then
-    log "没有找到需要清理的元数据目录。"
+if [ -z "$entries_to_delete" ]; then
+    log "没有找到需要清理的元数据。"
 else
     # 在循环外部计算目录数量，避免在 subshell 中计数导致的问题
     # `grep -c .` 会计算非空行的数量，比 `wc -l` 更健壮
-    deleted_count=$(echo -n "$dirs_to_delete" | grep -c .)
+    deleted_count=$(printf '%s\n' "$entries_to_delete" | grep -c .)
 
-    log "准备清理 ${deleted_count} 个元数据目录及其全部内容:"
+    log "准备清理 ${deleted_count} 个元数据缓存条目:"
     
     # 循环遍历并删除每个找到的目录
-    echo "$dirs_to_delete" | while IFS= read -r dir; do
-        if [ -n "$dir" ]; then
-            log "  => 正在删除目录: $dir"
-            # 使用 rm -rf 来递归删除整个目录及其内容
-            rm -rf "$dir"
+    printf '%s\n' "$entries_to_delete" | while IFS= read -r entry; do
+        if [ -n "$entry" ]; then
+            log "  => 正在删除缓存: $entry"
+            rm -rf -- "$entry" || exit 1
         fi
-    done
+    done || exit 1
 
-    log "汇总：总共清理了 ${deleted_count} 个元数据目录。"
+    log "汇总：总共清理了 ${deleted_count} 个元数据缓存条目。"
 fi
 
 log "清理任务完成。"

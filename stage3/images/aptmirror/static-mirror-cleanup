@@ -1,1 +1,2 @@
-0 */18 * * * root /usr/local/bin/cleanup.sh > /proc/1/fd/1 2>/proc/1/fd/2
+# Bound mutable index staleness; package and by-hash caches are retained.
+*/15 * * * * root /usr/local/bin/cleanup.sh > /proc/1/fd/1 2>/proc/1/fd/2

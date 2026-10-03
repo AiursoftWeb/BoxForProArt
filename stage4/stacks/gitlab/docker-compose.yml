@@ -199,6 +199,23 @@ services:
         order: start-first
         delay: 5s
 
+  runner_cleanup:
+    image: localhost:8080/box_starting/local_runner_cleaner:latest
+    volumes:
+      - gitlab-runner-data:/runner-data
+    environment:
+      - CHECK_INTERVAL_SECONDS=1800
+      - HIGH_WATERMARK_BYTES=107374182400
+      - LOW_WATERMARK_BYTES=85899345920
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+      update_config:
+        order: stop-first
+
   agent-bot:
     image: hub.aiursoft.com/aiursoft/agentbot:latest
     volumes:

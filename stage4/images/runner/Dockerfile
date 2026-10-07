@@ -55,6 +55,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       ripgrep \
       sudo \
       dbus-daemon \
+      xvfb \
+      xauth \
       dconf-cli \
       fontconfig \
       gsettings-desktop-schemas \
@@ -101,6 +103,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
+
+# Fail the image build if headless GTK tests cannot start a display/session.
+RUN dbus-run-session -- xvfb-run -a env GDK_BACKEND=x11 python3 -c \
+    'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk; Gtk.init(); assert Gtk.Label(label="Runner GUI smoke test").get_label() == "Runner GUI smoke test"'
 
 # AnduinOS package source tests validate generated GRUB syntax without
 # installing a bootloader or building a DEB inside the test job.

@@ -303,7 +303,7 @@ must_login_source_registry
 public_images=(
     "clickhouse/clickhouse-server:latest"
     "containrrr/shepherd:latest"
-    "ghcr.io/goauthentik/proxy:2026.5.6"
+    "ghcr.io/goauthentik/proxy:2026.8.3"
     "ghcr.io/nextcloud-releases/aio-talk:latest"
     "grafana/grafana:latest"
     "immybot/remotely:88"

@@ -82,6 +82,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       python3-unidecode \
       shellcheck \
       grub2-common \
+      sbsigntool \
       dotnet10 \
       gettext \
       wget \
@@ -116,6 +117,9 @@ RUN dbus-run-session -- xvfb-run -a env GDK_BACKEND=x11 python3 -c \
 # AnduinOS package source tests validate generated GRUB syntax without
 # installing a bootloader or building a DEB inside the test job.
 RUN grub-script-check --version
+
+# Secure Boot source tests sign real EFI fixtures and verify their signatures.
+RUN sbsign --version && sbverify --version
 
 # ARM64 cross-compilation toolchain for Rust/GTK applications
 # No libclang*-arm64 packages here — they conflict with the AMD64 versions

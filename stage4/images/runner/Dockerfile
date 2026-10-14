@@ -59,6 +59,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       xauth \
       dconf-cli \
       fontconfig \
+      fonts-noto-cjk \
       gsettings-desktop-schemas \
       netplan.io \
       unattended-upgrades \
@@ -103,6 +104,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/python3 /usr/local/bin/python && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
+
+# Watermark rendering tests need Latin and CJK glyphs at this standard path.
+RUN test -r /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc && \
+    fc-scan --format '%{family}\n' /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
 
 # Fail the image build if headless GTK tests cannot start a display/session.
 RUN dbus-run-session -- xvfb-run -a env GDK_BACKEND=x11 python3 -c \

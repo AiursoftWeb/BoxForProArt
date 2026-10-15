@@ -34,8 +34,9 @@ during normal container startup.
 
 Relay and worker share the stack-scoped `happier_backend` overlay. The worker
 connects directly to `http://relay:3005`; browser and pairing URLs remain
-`https://happier.aiursoft.com`. Only relay joins `proxy_app`; worker publishes no
-ports. The backend is not marked `internal: true`, because the worker needs
+`https://happier.aiursoft.com`. Worker also joins `proxy_app` so Box site domains resolve to Caddy through
+its generated network aliases, avoiding the host-published-port hairpin path.
+Worker publishes no ports. The backend is not marked `internal: true`, because the worker needs
 outbound access to model providers, Git remotes and package registries.
 
 The existing home bind path is unchanged. If an earlier standalone `worker` stack

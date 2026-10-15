@@ -109,7 +109,8 @@ or one whose accounts you already trust.
 
 This stack also runs `happier_worker`, based on the existing runner image with
 a persistent `/home/anduin`. It shares a private overlay with relay and connects
-to `http://relay:3005`; only relay joins the public ingress network. See
+to `http://relay:3005`. Both services also join `proxy_app`; worker uses Caddy
+network aliases to reach Box sites such as GitLab without host-port hairpinning. See
 [Worker setup and recovery](WORKER.md) for first approval, Codex login and crash
 recovery. Back up the worker home separately from relay data.
 

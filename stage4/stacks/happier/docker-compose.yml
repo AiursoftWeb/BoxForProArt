@@ -69,6 +69,8 @@ services:
       - home:/home/anduin
     networks:
       - backend
+      # Use Caddy's domain aliases instead of hairpinning through host ports.
+      - proxy_app
     healthcheck:
       test: ['CMD', 'setpriv', '--reuid=anduin', '--regid=anduin', '--init-groups', '/usr/local/bin/worker-health']
       interval: 30s

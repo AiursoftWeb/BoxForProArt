@@ -11,7 +11,7 @@ Point the domain through the existing Cloudflare/FRP ingress, like the other
 sites. Do not cache the WebUI, API or Socket.IO endpoints at Cloudflare. Do not
 publish container port 3005 on the host.
 
-The image must be mirrored before deploying the stack. It is included in the
+The stable image must be mirrored before deploying the stack. It is included in the
 public puller's scheduled inventory. The puller also accepts an explicit list of
 images. From the repository root on ProArt, send the updated script into the
 existing puller to prefetch just this one, reusing its credentials and tools:
@@ -20,7 +20,7 @@ existing puller to prefetch just this one, reusing its credentials and tools:
 sudo docker ps --filter label=com.docker.swarm.service.name=puller_downloader \
   --format '{{.ID}}\t{{.Names}}'
 sudo docker exec -i <puller-container-id> /bin/bash -s -- \
-  happierdev/relay-server:preview-22ac8263cfdb \
+  happierdev/relay-server:stable \
   < stage3/images/puller/entry.sh
 ```
 
@@ -78,7 +78,7 @@ sudo docker run --rm --name happier-bootstrap \
   -e HAPPIER_FEATURE_ENCRYPTION__STORAGE_POLICY=required_e2ee \
   -e AUTH_ANONYMOUS_SIGNUP_ENABLED=true \
   -v /swarm-vol/ssd/happier/data:/data \
-  hub.aiursoft.com/happierdev/relay-server:preview-22ac8263cfdb
+  hub.aiursoft.com/happierdev/relay-server:stable
 ```
 
 On your own computer, reach it through SSH:
@@ -107,20 +107,21 @@ or one whose accounts you already trust.
 
 ## Connect a computer running Codex
 
-The relay does not execute Codex. Install the matching preview CLI on each
+The relay does not execute Codex. Install the stable CLI on each
 computer you want to control, then pair it with your existing browser account:
 
 ```bash
-curl -fsSL https://happier.dev/install-preview | bash
-hprev setup --relay https://happier.aiursoft.com
-hprev daemon install
-hprev status
+curl -fsSL https://happier.dev/install | bash
+happier setup --relay https://happier.aiursoft.com
+happier daemon install
+happier status
 ```
 
 Approve the computer in the browser where you restored the account. Complete
 Codex's own login on that computer separately. The daemon must stay running for
-the WebUI to launch sessions. Use `hprev`, not `hdev`; do not follow any embedded
-WebUI instructions that suggest installing another release channel.
+the WebUI to launch sessions. Use the stable command `happier`; do not follow any
+embedded WebUI instructions that suggest installing `hprev` or `hdev`. Server
+updates do not update the CLI or daemon on connected computers.
 
 Keep the relay limited to its own data volume: no Docker socket, source trees or
 host Codex credentials. Choose the projects and permissions on the agent machine.
@@ -132,7 +133,13 @@ For a consistent SQLite backup, scale `happier_relay` to zero and wait for the
 task to stop before copying, then scale it back to one. Back up the account Secret
 Key separately. Losing it can prevent account recovery and E2EE decryption.
 
-The image is pinned to `preview-22ac8263cfdb`, the release tested with CLI
-`0.2.16-preview.1`. No Shepherd auto-update label is set. Change the tag together
-in this stack, the public puller inventory and these bootstrap instructions when
-upgrading, and verify compatibility with the agent CLI before deployment.
+The service follows `hub.aiursoft.com/happierdev/relay-server:stable`. The public
+puller checks the official `happierdev/relay-server:stable` tag on its normal
+schedule and mirrors changes. The `shepherd.autoupdate=true` service label lets
+the existing Shepherd update the relay after the mirror changes. Updates stay
+single-replica and stop-first because SQLite and the data directory are shared.
+
+Keep regular backups of the whole data directory before relying on automatic
+updates. A binary rollback does not reverse database migrations; restoring an
+older backup may be required. Keep connected CLIs on the stable channel as well,
+and manage their updates separately.

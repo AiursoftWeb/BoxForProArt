@@ -42,16 +42,26 @@ while true; do
         break
     elif jq -e '.error.code == "not_authenticated"' <<< "$status" >/dev/null 2>&1; then
         echo 'Worker needs approval in your existing Happier account.'
-        if timeout 60 happier auth request --json > "$request_file"; then
-            if public_key=$(jq -er '.publicKey' "$request_file") && \
-                link=$(jq -er '.links.webUrl' "$request_file"); then
-                printf 'Open this private pairing link to approve proart-worker:\n%s\n' "$link"
-                # wait's JSON contains a bearer token; never put it in Docker logs.
-                if timeout 3600 happier auth wait --public-key "$public_key" --json >/dev/null; then
-                    echo 'Pairing approved; verifying authentication.'
-                    continue
-                fi
+        request_exit=0
+        timeout 60 happier auth request --json > "$request_file" || request_exit=$?
+        # Validate the payload even if the CLI reports a nonzero exit status.
+        if jq -e '(.publicKey | type == "string" and length > 0) and
+            (.links.webUrl | type == "string" and length > 0)' "$request_file" >/dev/null 2>&1; then
+            public_key=$(jq -r '.publicKey' "$request_file")
+            link=$(jq -r '.links.webUrl' "$request_file")
+            printf 'Pairing request exit code: %s\n' "$request_exit"
+            printf 'Open this private pairing link to approve proart-worker:\n%s\n' "$link"
+            # wait's JSON contains a bearer token; never put it in Docker logs.
+            wait_exit=0
+            timeout 3600 happier auth wait --public-key "$public_key" --json >/dev/null || wait_exit=$?
+            printf 'Pairing wait exit code: %s\n' "$wait_exit"
+            if [ "$wait_exit" = 0 ]; then
+                echo 'Pairing approved; verifying authentication.'
+                continue
             fi
+        else
+            printf 'Pairing request returned no usable link (exit %s).\n' "$request_exit" >&2
+            jq -r '.error.code // "No structured error code"' "$request_file" >&2 2>/dev/null || true
         fi
         echo 'Pairing failed or expired; retrying in 15 seconds.'
     else

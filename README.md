@@ -27,6 +27,10 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
     *   `jellyfin`: Media streaming.
     *   `ai`: LLM and Stable Diffusion inference services (leveraging the GPUs).
     *   `runner`: GitLab CI/CD runners executing build jobs.
+    *   `happier`: Private Codex/agent relay and embedded WebUI at
+        `https://happier.aiursoft.com`, with E2EE and public registration disabled.
+        See [Happier setup](stage4/stacks/happier/README.md) for the one-time
+        account bootstrap, computer pairing and backups.
 
 ## 🚀 Deployment
 

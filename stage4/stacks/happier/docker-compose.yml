@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  relay:
+    # Fixed release, also mirrored by stage3/images/puller/entry.sh.
+    # Deliberately not managed by Shepherd; update the CLI and relay together.
+    image: hub.aiursoft.com/happierdev/relay-server:preview-22ac8263cfdb
+    # The generic deployment creates bind directories as root. Initialise only
+    # this volume, then run the server as the image's original unprivileged UID.
+    user: '0:0'
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - |
+        chown 1000:1000 /data
+        chmod 0700 /data
+        exec setpriv --reuid=1000 --regid=1000 --init-groups \
+          run-server /opt/happier/server/happier-server
+    environment:
+      HAPPIER_SERVER_FLAVOR: light
+      HAPPIER_DB_PROVIDER: sqlite
+      HAPPIER_FILES_BACKEND: local
+      HAPPIER_SERVER_LIGHT_DATA_DIR: /data/happier
+      HAPPIER_PUBLIC_SERVER_URL: https://happier.aiursoft.com
+      HAPPIER_WEBAPP_URL: https://happier.aiursoft.com
+      # Caddy is the public ingress; no host port is published.
+      HAPPIER_SERVER_TRUST_PROXY: '1'
+      HAPPIER_FEATURE_ENCRYPTION__STORAGE_POLICY: required_e2ee
+      AUTH_ANONYMOUS_SIGNUP_ENABLED: 'false'
+      AUTH_SIGNUP_PROVIDERS: ''
+      AUTH_REQUIRED_LOGIN_PROVIDERS: ''
+      # Without HANDY_MASTER_SECRET the light runtime generates and persists
+      # its secret in the data directory. Back up the entire volume.
+    volumes:
+      - data:/data
+    networks:
+      - proxy_app
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', '--show-error', 'http://127.0.0.1:3005/v1/version']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+networks:
+  proxy_app:
+    external: true
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/happier/data

@@ -313,6 +313,8 @@ images=(
     "golang:1.21.5"
     "grafana/grafana"
     "haproxy"
+    # Pinned Happier relay + embedded WebUI; keep in sync with its stage4 stack.
+    "happierdev/relay-server:preview-22ac8263cfdb"
     "haskell"
     "haskell:9.8.1"
     "hello-world"
@@ -428,6 +430,12 @@ images=(
     "wolveix/satisfactory-server:latest"
     "wordpress:php8.3-fpm-alpine"
 )
+
+# Optional explicit image list for prefetching a new stack's dependencies:
+# /app/entry.sh happierdev/relay-server:preview-22ac8263cfdb
+if [ "$#" -gt 0 ]; then
+    images=("$@")
+fi
 
 # Shuffle the list and iterate
 shuffled_images=($(printf "%s\n" "${images[@]}" | shuf))

@@ -105,6 +105,14 @@ to restore the same account. Do the same on additional browsers/devices. Closing
 signup does not revoke pre-existing accounts; bootstrap only on a fresh database
 or one whose accounts you already trust.
 
+## Built-in worker
+
+This stack also runs `happier_worker`, based on the existing runner image with
+a persistent `/home/anduin`. It shares a private overlay with relay and connects
+to `http://relay:3005`; only relay joins the public ingress network. See
+[Worker setup and recovery](WORKER.md) for first approval, Codex login and crash
+recovery. Back up the worker home separately from relay data.
+
 ## Connect a computer running Codex
 
 The relay does not execute Codex. Install the stable CLI on each

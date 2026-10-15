@@ -31,6 +31,9 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
         `https://happier.aiursoft.com`, with E2EE and public registration disabled.
         See [Happier setup](stage4/stacks/happier/README.md) for the one-time
         account bootstrap, computer pairing and backups.
+        Includes an always-on Codex worker based on the runner image,
+        with a persistent `/home/anduin` and first-boot Happier pairing.
+        See [Worker setup](stage4/stacks/happier/WORKER.md).
 
 ## 🚀 Deployment
 

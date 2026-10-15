@@ -648,6 +648,10 @@ print_ok "Building local runner..."
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
+print_ok "Building local worker..."
+sudo docker build --network=host ./stage4/images/worker -t localhost:8080/box_starting/local_worker:latest
+sudo docker push localhost:8080/box_starting/local_worker:latest
+
 print_ok "Building runner cleaner..."
 sudo docker build --network=host ./stage4/images/runner-cleaner -t localhost:8080/box_starting/local_runner_cleaner:latest
 sudo docker push localhost:8080/box_starting/local_runner_cleaner:latest

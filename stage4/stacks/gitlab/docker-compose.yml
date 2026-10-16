@@ -226,7 +226,7 @@ services:
       # To switch back to Claude, set Engine=Claude and Model=aiursoft-super:latest.
       # ApiKey and ApiEndpoint may stay in place because the Codex engine ignores them.
       - AgentBot__Engine=Codex
-      - AgentBot__Model=gpt-5.6-sol
+      - AgentBot__Model=gpt-6.1-sol
       - AgentBot__ReasoningEffort=high
       - BOT_REPLY_LANGUAGE=zh
       - AgentBot__ApiKey={{AGENT_BOT_API_KEY}}

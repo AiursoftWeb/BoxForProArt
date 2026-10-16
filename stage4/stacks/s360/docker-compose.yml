@@ -1,0 +1,92 @@
+version: '3.9'
+
+services:
+  app:
+    depends_on:
+      - db
+    image: hub.aiursoft.com/aiursoft/s360:latest
+    volumes:
+      - s360-files:/data/files
+      - s360-aspnet:/data/.aspnet
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=s360;Uid=s360;Pwd={{S360_MYSQL_PASSWORD}};
+      - ConnectionStrings__DbType=MySql
+      - Storage__Path=/data/files
+      - SupplyChain__NuGetSources__0=https://nuget.aiursoft.com/v3/index.json
+      - SupplyChain__NpmSources__0=https://npm.aiursoft.com
+      - SupplyChain__CheckApiKey=
+      - AppSettings__DefaultRole=Employees
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/s360
+      - AppSettings__OIDC__ClientId={{S360_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{S360_CLIENT_SECRET}}
+      - Logging__Clickhouse__Enabled=true
+      - Logging__Clickhouse__ConnectionString=Host=clickhouse;User=default;Password=123456;Database=AspNetCoreLogs
+      - Logging__Clickhouse__TableName=S360Logs
+    networks:
+      - proxy_app
+      - internal
+      - clickhouse_net
+    stop_grace_period: 20s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+      update_config:
+        order: start-first
+        delay: 5s
+
+  db:
+    image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
+    volumes:
+      - s360-db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=s360
+      - MYSQL_USER=s360
+      - MYSQL_PASSWORD={{S360_MYSQL_PASSWORD}}
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  s360-aspnet:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/s360-data/aspnet
+  s360-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/s360-data/files
+  s360-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/s360-data/mysql
+
+networks:
+  proxy_app:
+    external: true
+  clickhouse_net:
+    external: true
+  internal:
+    driver: overlay

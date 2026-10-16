@@ -321,6 +321,64 @@ function deploy() {
     rm "$temp_compose_file"
 }
 
+# Zot initializes OIDC during startup; an Authentik rollout can otherwise crash Zot
+# and pause its Swarm update (observed on Global on 2026-10-16).
+# Keep this guard identical across Boxes; only the persisted config path differs.
+function wait_for_zot_oidc() {
+    local config=$1 issuer discovery services details remaining
+    local deadline=$((SECONDS + 600))
+    local reason="OIDC discovery is not ready"
+
+    if ! sudo test -f "$config"; then
+        config="stage3/images/zot/default-config.json"
+    fi
+    if ! issuer=$(sudo jq -er '.http.auth.openid.providers.oidc.issuer | select(type == "string" and startswith("https://"))' "$config"); then
+        print_error "Cannot read Zot's OIDC issuer from $config; refusing to update Zot."
+        return 1
+    fi
+    discovery="${issuer%/}/.well-known/openid-configuration"
+
+    while (( SECONDS < deadline )); do
+        # A healthy response from the old Authentik task is not rollout completion.
+        if [ -f stage3/stacks/authentik/docker-compose.yml ]; then
+            if ! services=$(sudo timeout 10 docker stack services authentik --format '{{json .}}') ||
+               ! details=$(printf '%s\n' "$services" | jq -ser 'map(.Name) | select(length > 0) | .[]' |
+                   xargs sudo timeout 10 docker service inspect); then
+                reason="cannot inspect the local Authentik stack"
+            elif jq -e 'any(.[]; (.UpdateStatus.State // "") | test("paused|rollback"))' <<< "$details" >/dev/null; then
+                print_error "Authentik update paused or rolled back; inspect docker stack ps authentik before retrying. Zot was not updated."
+                return 1
+            elif jq -e 'all(.[]; (.UpdateStatus.State // "") as $state | $state == "" or $state == "completed")' <<< "$details" >/dev/null &&
+                 jq -se 'length > 0 and all(.[]; .Replicas | split("/") | length == 2 and .[0] == .[1] and (.[1] | tonumber) > 0)' <<< "$services" >/dev/null; then
+                reason="OIDC discovery is not ready"
+            else
+                reason="local Authentik services are still converging"
+            fi
+        fi
+
+        remaining=$((deadline - SECONDS))
+        if (( remaining <= 0 )); then
+            break
+        fi
+        if [ "$reason" = "OIDC discovery is not ready" ]; then
+            if curl --fail --silent --show-error --connect-timeout 5 --max-time "$((remaining < 10 ? remaining : 10))" "$discovery" |
+                jq -e --arg issuer "$issuer" '.issuer == $issuer and
+                    ([.authorization_endpoint, .token_endpoint, .jwks_uri] |
+                     all(.[]; type == "string" and startswith("https://")))' >/dev/null; then
+                print_ok "Zot OIDC discovery is ready: $discovery"
+                return 0
+            fi
+        fi
+        print_warn "Waiting before updating Zot: $reason."
+        remaining=$((deadline - SECONDS))
+        if (( remaining > 0 )); then
+            sleep "$((remaining < 5 ? remaining : 5))"
+        fi
+    done
+    print_error "Timed out after 600s: $reason. Check Authentik and $discovery; Zot was not updated."
+    return 1
+}
+
 # Ensure packages needed are ready
 if [ "$TARGET_STAGE" -le 0 ]; then
 print_ok "Ensure packages needed are ready..."
@@ -621,6 +679,7 @@ sudo docker build ./stage3/images/ppamirror -t localhost:8080/box_starting/local
 sudo docker push localhost:8080/box_starting/local_ppamirror:latest
 
 print_ok "Starting Zot, Puller, ppamirror..."
+wait_for_zot_oidc /swarm-vol/ssd/zot-data/config/config.json
 deploy stage3/stacks/zot/docker-compose.yml zot
 deploy stage3/stacks/puller/docker-compose.yml puller
 deploy stage3/stacks/aptmirror/docker-compose.yml aptmirror

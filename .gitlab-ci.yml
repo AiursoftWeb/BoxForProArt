@@ -8,6 +8,7 @@ lint-compose:
     - python3 -m pip install --disable-pip-version-check pyyaml
   script:
     - python3 ./lint.py
+    - python3 -B -m unittest discover -s tests -p test_puller.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

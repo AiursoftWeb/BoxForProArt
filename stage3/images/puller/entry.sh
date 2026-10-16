@@ -345,7 +345,6 @@ images=(
     "mediawiki"
     "mediacms/mediacms"
     "memcached"
-    "minio/minio"
     "mongo"
     "mwader/postfix-relay"
     "mysql:9.7.0"

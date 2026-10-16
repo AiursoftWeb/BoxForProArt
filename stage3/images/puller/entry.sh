@@ -1,7 +1,8 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
-cd /app
+APP_DIR="${APP_DIR:-/app}"
+cd "$APP_DIR"
 
 # Color definitions
 RED='\033[0;31m'
@@ -40,7 +41,16 @@ log_detail() {
 }
 
 # ── Sync-record helpers (used to skip unchanged images) ──────────────
-SYNC_RECORDS_DIR="/app/sync_records"
+REGCTL_BIN="${REGCTL_BIN:-/usr/local/bin/regctl}"
+COPY_TIMEOUT_SECONDS="${COPY_TIMEOUT_SECONDS:-14400}"
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-8}"
+SYNC_RECORDS_DIR="${SYNC_RECORDS_DIR:-/app/sync_records}"
+for value in "$COPY_TIMEOUT_SECONDS" "$MAX_ATTEMPTS"; do
+    if [[ ! "$value" =~ ^[1-9][0-9]*$ ]]; then
+        log_error "Copy timeout and maximum attempts must be positive integers"
+        exit 1
+    fi
+done
 mkdir -p "$SYNC_RECORDS_DIR"
 
 get_sync_record_file() {
@@ -54,55 +64,29 @@ get_sync_record_file() {
 }
 
 save_sync_record() {
-    local image="$1"
-    local record_file
+    local image="$1" digest="$2" record_file temporary_file
     record_file=$(get_sync_record_file "$image")
-    date +%s > "$record_file"
-}
-
-get_last_sync_time() {
-    local image="$1"
-    local record_file
-    record_file=$(get_sync_record_file "$image")
-    if [[ -f "$record_file" ]]; then
-        cat "$record_file"
-    else
-        echo "0"
-    fi
+    temporary_file="${record_file}.tmp.$$"
+    printf '%s %s\n' "$(date +%s)" "$digest" > "$temporary_file" &&
+        mv "$temporary_file" "$record_file"
 }
 
 should_skip_image() {
-    local sourceImage="$1"
-
-    if [[ "$sourceImage" != *":"* ]]; then
-        sourceImage="${sourceImage}:latest"
-    fi
-
-    local imageName imageTag finalMirror lastSync
-    imageName=$(echo "$sourceImage" | cut -d: -f1)
-    imageTag=$(echo "$sourceImage" | cut -d: -f2)
-    finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
-
-    lastSync=$(get_last_sync_time "$sourceImage")
-
-    if [[ "$lastSync" == "0" ]]; then
-        # Never synced before – must proceed
-        return 1
-    fi
-
-    # Ask source_updated.py whether a sync is needed
-    #   exit 0 → safe to skip  |  exit 1 → must sync
+    local sourceImage="$1" record_file lastSync="" recordedDigest="" target_digest
+    record_file=$(get_sync_record_file "$sourceImage")
+    [[ -f "$record_file" ]] || return 1
+    read -r lastSync recordedDigest < "$record_file" || return 1
+    # Old timestamp-only records may come from a falsely successful copy.
+    [[ "$lastSync" =~ ^[0-9]+$ && -n "$recordedDigest" ]] || return 1
     if python3 source_updated.py "$sourceImage" "$lastSync" 2>/dev/null; then
-        # Double-check: the image must still be present in our mirror
-        if /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
-            return 0   # skip
-        else
-            log_warning "Source unchanged but mirror image missing/invalid – will re-sync"
+        if ! target_digest=$("$REGCTL_BIN" image digest "${MIRROR_TARGET}/${sourceImage}"); then
             return 1
         fi
+        [[ "$target_digest" == "$recordedDigest" ]] || return 1
+        "$REGCTL_BIN" image manifest "${MIRROR_TARGET}/${sourceImage}" &>/dev/null
+    else
+        return 1
     fi
-
-    return 1   # proceed with sync
 }
 
 must_login_local_registry() {
@@ -120,7 +104,7 @@ must_login_local_registry() {
         exit 1
     fi
 
-    /usr/local/bin/regctl registry login "${MIRROR_TARGET}" -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_PASSWORD" > /dev/null 2>&1
+    "$REGCTL_BIN" registry login "${MIRROR_TARGET}" -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_PASSWORD" > /dev/null 2>&1
     log_success "Successfully authenticated to ${MIRROR_TARGET}"
 }
 
@@ -139,82 +123,67 @@ try_docker_login() {
 
     log_detail "Username: ${DOCKER_USERNAME}"
     if [[ -n "$FROM_REGISTRY" ]]; then
-        /usr/local/bin/regctl registry login "${FROM_REGISTRY}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
+        "$REGCTL_BIN" registry login "${FROM_REGISTRY}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
         log_success "Successfully authenticated to ${FROM_REGISTRY}"
     else
-        /usr/local/bin/regctl registry login "docker.io" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
+        "$REGCTL_BIN" registry login "docker.io" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" > /dev/null 2>&1
         log_success "Successfully authenticated to Docker Hub"
     fi
 }
 
 
 actual_mirror_docker() {
-    sourceImage="$1"
-    attempt="$2"
-
-    if [[ "$sourceImage" != *":"* ]]; then
-        sourceImage="${sourceImage}:latest"
-    fi
-
-    imageName=$(echo "$sourceImage" | cut -d: -f1)
-    imageTag=$(echo "$sourceImage" | cut -d: -f2)
-    finalMirror="${MIRROR_TARGET}/${imageName}:${imageTag}"
-
-    # If FROM_REGISTRY is set, prepend it to the source image
-    if [[ -n "$FROM_REGISTRY" ]]; then
-        fullSourceImage="${FROM_REGISTRY}/${imageName}:${imageTag}"
-    else
-        fullSourceImage="${sourceImage}"
-    fi
-
+    local sourceImage="$1" attempt="$2"
+    local finalMirror fullSourceImage pinnedSourceImage src_digest dest_digest
+    local -a copy_args
+    finalMirror="${MIRROR_TARGET}/${sourceImage}"
+    fullSourceImage="${FROM_REGISTRY:+${FROM_REGISTRY}/}${sourceImage}"
     log_detail "Source: ${fullSourceImage}"
     log_detail "Target: ${finalMirror}"
-    
-    # Check if already mirrored by comparing digests
-    log_info "Checking if image is already up-to-date..."
-    src_digest=$(/usr/local/bin/regctl image digest "$fullSourceImage" 2>/dev/null)
-    dest_digest=$(/usr/local/bin/regctl image digest "$finalMirror" 2>/dev/null)
 
-    if [[ -n "$src_digest" && "$src_digest" == "$dest_digest" ]]; then
-        log_info "Image already mirrored (digests match), verifying integrity..."
-        if ! /usr/local/bin/regctl image manifest "$finalMirror" &>/dev/null; then
-            log_warning "Integrity check failed, cleaning up..."
-            /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
-            return 1
-        fi
-        log_success "Image is up-to-date and valid"
-        save_sync_record "$sourceImage"
-        return 0
-    fi
-
-    # Perform the copy
-    log_info "Copying image (attempt ${attempt})..."
-    if [[ $attempt -eq 1 ]]; then
-        timeout 1800 /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --digest-tags 2>&1 | sed 's/^/  /'
-    else
-        timeout 1800 /usr/local/bin/regctl image copy "$fullSourceImage" "$finalMirror" --force-recursive --digest-tags 2>&1 | sed 's/^/  /'
-    fi
-    sleep 3
-
-    # Verify the copy
-    log_info "Verifying mirrored image..."
-    
-    if ! /usr/local/bin/regctl image manifest "$finalMirror" &> /dev/null; then
-        log_error "Manifest verification failed"
-        /usr/local/bin/regctl image delete "$finalMirror" 2>/dev/null || true
+    if ! src_digest=$("$REGCTL_BIN" image digest "$fullSourceImage") || [[ -z "$src_digest" ]]; then
+        log_error "Unable to resolve source digest: ${fullSourceImage}"
         return 1
     fi
+    # Resolve the tag once; a moving latest must not change what we verify.
+    pinnedSourceImage="${fullSourceImage%:*}@${src_digest}"
+    dest_digest=$("$REGCTL_BIN" image digest "$finalMirror" 2>/dev/null) || dest_digest=""
+    if [[ "$src_digest" != "$dest_digest" ]]; then
+        copy_args=(image copy "$pinnedSourceImage" "$finalMirror" --digest-tags)
+        if [[ "$attempt" -gt 1 ]]; then
+            copy_args+=(--force-recursive)
+        fi
+        log_info "Copying image (attempt ${attempt})..."
+        if ! timeout "$COPY_TIMEOUT_SECONDS" "$REGCTL_BIN" "${copy_args[@]}" 2>&1 | sed 's/^/  /'; then
+            log_error "Copy command failed or exceeded ${COPY_TIMEOUT_SECONDS}s"
+            return 1
+        fi
+        sleep 3
+    fi
 
-    log_success "Image mirrored and verified successfully"
-    save_sync_record "$sourceImage"
+    if ! dest_digest=$("$REGCTL_BIN" image digest "$finalMirror") || [[ "$dest_digest" != "$src_digest" ]]; then
+        log_error "Target digest does not match the resolved source digest"
+        return 1
+    fi
+    if ! "$REGCTL_BIN" image manifest "$finalMirror" &>/dev/null; then
+        log_error "Manifest verification failed; retaining the existing target"
+        return 1
+    fi
+    if ! save_sync_record "$sourceImage" "$src_digest"; then
+        log_error "Unable to save verified sync record"
+        return 1
+    fi
+    log_success "Image mirrored and digest verified successfully"
     return 0
 }
 
 
-
 mirror_docker() {
-    sourceImage="$1"
-    max_attempts=8
+    local sourceImage="$1"
+    local max_attempts="$MAX_ATTEMPTS" attempt backoff
+    if [[ "${sourceImage##*/}" != *":"* ]]; then
+        sourceImage="${sourceImage}:latest"
+    fi
     
     log_step "Mirroring: ${BOLD}${sourceImage}${NC}"
 
@@ -313,6 +282,8 @@ images=(
     "golang:1.21.5"
     "grafana/grafana"
     "haproxy"
+    # Follow the stable relay + embedded WebUI; Shepherd updates the stage4 stack.
+    "happierdev/relay-server:stable"
     "haskell"
     "haskell:9.8.1"
     "hello-world"
@@ -343,7 +314,6 @@ images=(
     "mediawiki"
     "mediacms/mediacms"
     "memcached"
-    "minio/minio"
     "mongo"
     "mwader/postfix-relay"
     "mysql:9.7.0"
@@ -429,13 +399,24 @@ images=(
     "wordpress:php8.3-fpm-alpine"
 )
 
+# Optional explicit image list for prefetching a new stack's dependencies:
+# /app/entry.sh happierdev/relay-server:stable
+if [ "$#" -gt 0 ]; then
+    images=("$@")
+fi
+
 # Shuffle the list and iterate
 shuffled_images=($(printf "%s\n" "${images[@]}" | shuf))
 
+failed_images=()
 for image in "${shuffled_images[@]}"; do
-    mirror_docker "$image"
+    if ! mirror_docker "$image"; then
+        failed_images+=("$image")
+    fi
 done
 
-echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-log_success "${BOLD}All images have been processed${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+if [ "${#failed_images[@]}" -gt 0 ]; then
+    log_error "${#failed_images[@]} image(s) failed: ${failed_images[*]}"
+    exit 1
+fi
+log_success "All images have been processed successfully"

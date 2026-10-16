@@ -112,11 +112,13 @@ function get_env_value() {
 function login_to_hub() {
     local registry_host=$1
     local verification_image=$2
+    local username_key=${3:-DOCKERHUB_USERNAME}
+    local password_key=${4:-DOCKERHUB_PASSWORD}
     local hub_username
     local hub_password
 
-    hub_username=$(get_env_value "DOCKERHUB_USERNAME")
-    hub_password=$(get_env_value "DOCKERHUB_PASSWORD")
+    hub_username=$(get_env_value "$username_key")
+    hub_password=$(get_env_value "$password_key")
 
     print_ok "Logging in to $registry_host..."
     if ! printf '%s' "$hub_password" | sudo docker login "$registry_host" --username "$hub_username" --password-stdin; then
@@ -509,6 +511,7 @@ print_warn "   Starting stage 0: Mission is to start a simple registry"
 print_warn "=============================================================================="
 sleep 3
 
+login_to_hub "docker.io" "registry:3" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
 sudo docker compose -f ./stage0/registry/docker-compose.yml up -d --pull always --no-recreate --remove-orphans
 
 #deploy stage0/registry/docker-compose.yml registry # 8080
@@ -531,6 +534,7 @@ print_warn "   Starting stage 1: Mission is to mirror public images to the simpl
 print_warn "=============================================================================="
 sleep 3
 
+login_to_hub "docker.io" "ubuntu:26.04" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
 bash ./stage1/mirror.sh
 
 print_warn "=============================================================================="
@@ -648,6 +652,10 @@ print_ok "Building local runner..."
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 
+print_ok "Building local worker..."
+sudo docker build --network=host ./stage4/images/worker -t localhost:8080/box_starting/local_worker:latest
+sudo docker push localhost:8080/box_starting/local_worker:latest
+
 print_ok "Building runner cleaner..."
 sudo docker build --network=host ./stage4/images/runner-cleaner -t localhost:8080/box_starting/local_runner_cleaner:latest
 sudo docker push localhost:8080/box_starting/local_runner_cleaner:latest
@@ -661,6 +669,7 @@ if [ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
     print_ok "QEMU binfmt already registered in kernel. Skipping."
 else
     print_warn "QEMU binfmt not found. Registering via tonistiigi/binfmt..."
+    login_to_hub "docker.io" "tonistiigi/binfmt" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
     sudo docker run --privileged --rm tonistiigi/binfmt --install all
     print_ok "QEMU binfmt registered. Supported platforms:"
     ls /proc/sys/fs/binfmt_misc/ | grep qemu || true

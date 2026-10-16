@@ -1,0 +1,112 @@
+version: '3.9'
+
+services:
+  relay:
+    # The puller mirrors the stable channel; Shepherd follows its updates.
+    image: hub.aiursoft.com/happierdev/relay-server:stable
+    # The generic deployment creates bind directories as root. Initialise only
+    # this volume, then run the server as the image's original unprivileged UID.
+    user: '0:0'
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - |
+        chown 1000:1000 /data
+        chmod 0700 /data
+        exec setpriv --reuid=1000 --regid=1000 --init-groups \
+          run-server /opt/happier/server/happier-server
+    environment:
+      HAPPIER_SERVER_FLAVOR: light
+      HAPPIER_DB_PROVIDER: sqlite
+      HAPPIER_FILES_BACKEND: local
+      HAPPIER_SERVER_LIGHT_DATA_DIR: /data/happier
+      HAPPIER_PUBLIC_SERVER_URL: https://happier.aiursoft.com
+      HAPPIER_WEBAPP_URL: https://happier.aiursoft.com
+      # Caddy is the public ingress; no host port is published.
+      HAPPIER_SERVER_TRUST_PROXY: '1'
+      HAPPIER_FEATURE_ENCRYPTION__STORAGE_POLICY: required_e2ee
+      AUTH_ANONYMOUS_SIGNUP_ENABLED: 'false'
+      AUTH_SIGNUP_PROVIDERS: ''
+      AUTH_REQUIRED_LOGIN_PROVIDERS: ''
+      # Without HANDY_MASTER_SECRET the light runtime generates and persists
+      # its secret in the data directory. Back up the entire volume.
+    volumes:
+      - data:/data
+    networks:
+      - proxy_app
+      - backend
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', '--show-error', 'http://127.0.0.1:3005/v1/version']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: 'true'
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  worker:
+    image: localhost:8080/box_starting/local_worker:latest
+    hostname: proart-worker
+    environment:
+      HAPPIER_SERVER_URL: http://relay:3005
+      HAPPIER_WEBAPP_URL: https://happier.aiursoft.com
+      HAPPIER_PUBLIC_SERVER_URL: https://happier.aiursoft.com
+      NO_PROXY: 127.0.0.1,localhost,::1,relay
+      no_proxy: 127.0.0.1,localhost,::1,relay
+    volumes:
+      - home:/home/anduin
+    networks:
+      - backend
+      # Use Caddy's domain aliases instead of hairpinning through host ports.
+      - proxy_app
+    healthcheck:
+      test: ['CMD', 'setpriv', '--reuid=anduin', '--regid=anduin', '--init-groups', '/usr/local/bin/worker-health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    stop_grace_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 15s
+      update_config:
+        order: stop-first
+        delay: 60s
+
+networks:
+  # Stack-scoped overlay; outbound access is needed by the coding worker.
+  backend:
+    driver: overlay
+  proxy_app:
+    external: true
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/happier/data
+  home:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/worker/home

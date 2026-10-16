@@ -28,8 +28,8 @@
 		"address": "0.0.0.0",
 		"port": "5000",
 		"realm": "zot",
-		"readTimeout": "30m",
-		"writeTimeout": "30m",
+		"readTimeout": "2h",
+		"writeTimeout": "2h",
 		"compat": [
 			"docker2s2"
 		],

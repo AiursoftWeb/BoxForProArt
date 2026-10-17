@@ -148,6 +148,8 @@ services:
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
+      - S360_SERVER=https://s360.aiursoft.com
+      - S360_CHECK_KEY={{S360_CHECK_KEY}}
     networks:
       - internal
       - proxy_app
@@ -185,6 +187,8 @@ services:
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
+      - S360_SERVER=https://s360.aiursoft.com
+      - S360_CHECK_KEY={{S360_CHECK_KEY}}
     networks:
       - internal
       - proxy_app

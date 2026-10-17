@@ -14,7 +14,7 @@ services:
       - Storage__Path=/data/files
       - SupplyChain__NuGetSources__0=https://nuget.aiursoft.com/v3/index.json
       - SupplyChain__NpmSources__0=https://npm.aiursoft.com
-      - SupplyChain__CheckApiKey=
+      - SupplyChain__CheckApiKey={{S360_CHECK_KEY}}
       - AppSettings__DefaultRole=Employees
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/s360

@@ -229,14 +229,17 @@ services:
       - agent-bot-log:/logs
       - agent-bot-workspace:/workspace
     environment:
-      # To switch back to Claude, set Engine=Claude and Model=aiursoft-super:latest.
-      # ApiKey and ApiEndpoint may stay in place because the Codex engine ignores them.
-      - AgentBot__Engine=Codex
-      - AgentBot__Model=gpt-6.1-sol
-      - AgentBot__ReasoningEffort=high
+      # Resolve the physical coding model in OllamaGateway, not in this deployment.
+      - AgentBot__Engine=Copilot
+      - AgentBot__Model=aiursoft-codex:latest
+      - AgentBot__ReasoningEffort=xhigh
+      - COPILOT_PROVIDER_MAX_PROMPT_TOKENS=922000
+      - COPILOT_PROVIDER_MAX_OUTPUT_TOKENS=128000
+      - COPILOT_PROVIDER_WIRE_API=responses
+      - COPILOT_OFFLINE=true
       - BOT_REPLY_LANGUAGE=zh
       - AgentBot__ApiKey={{AGENT_BOT_API_KEY}}
-      - AgentBot__ApiEndpoint=https://ollama.aiursoft.com
+      - AgentBot__ApiEndpoint=https://ollama.aiursoft.com/v1
       - AgentBot__WorkspaceFolder=/workspace
       - Servers__0__Provider=GitLab
       - Servers__0__EndPoint=https://gitlab.aiursoft.com

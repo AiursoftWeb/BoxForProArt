@@ -47,6 +47,22 @@ sudo bash deploy.sh
 
 > **Note:** Ensure NVIDIA Drivers are installed for GPU passthrough support. The `deploy.sh` script will attempt to detect and configure them.
 
+## FRP transport deployment
+
+The FRP client uses QUIC on UDP port 9700. Before deploying this client,
+configure the gateway's FRPS with the top-level setting `quicBindPort = 9700`
+and allow UDP 9700 through its firewall. Keep the existing TCP/KCP listeners
+on port 7000 available for rollback. The gateway configuration is managed
+separately from this repository; verify its configuration source and apply
+the server change first during a maintenance window.
+
+The transport change affects every proxy, including HTTP, HTTPS, GitLab SSH
+and Minecraft. Existing per-proxy bandwidth limits, compression and PROXY
+protocol settings are retained. After deployment, check these services,
+complete transfers and interactive latency while the uplink is busy.
+To roll back, redeploy the client with `transport.protocol = "kcp"` and
+`serverPort = 7000`, keeping the original KCP listener available.
+
 ## AgentBot Codex authentication
 
 The GitLab stack runs AgentBot with the `gpt-5.6-sol` Codex model and persists its ChatGPT login under `/swarm-vol/agent-bot/codex-home`. After the first deployment, find the active Swarm task:

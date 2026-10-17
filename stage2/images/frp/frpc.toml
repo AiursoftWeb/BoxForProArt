@@ -1,9 +1,10 @@
 serverAddr = "FRP_SERVER_IP"
-serverPort = 7000
+serverPort = 9700
 auth.token = "FRP_TOKEN"
 transport.poolCount = 5
-transport.protocol = "kcp"
+transport.protocol = "quic"
 transport.tcpMux = true
+transport.tls.enable = true
 webServer.addr = "0.0.0.0"
 webServer.port = 7400
 webServer.user = "admin"

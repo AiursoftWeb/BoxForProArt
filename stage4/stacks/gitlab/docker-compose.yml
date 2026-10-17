@@ -80,7 +80,7 @@ services:
         puma['min_threads'] = 1
         puma['max_threads'] = 4
         puma['exporter_enabled'] = false
-        sidekiq['concurrency'] = 2
+        sidekiq['concurrency'] = 10
         sidekiq['max_concurrency'] = 10
         sidekiq['min_concurrency'] = nil
         sidekiq['metrics_enabled'] = false

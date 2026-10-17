@@ -225,7 +225,6 @@ services:
     image: hub.aiursoft.com/aiursoft/agentbot:latest
     volumes:
       # Match Docker service update's source/target ordering to avoid replacement.
-      - agent-bot-codex-home:/home/bot/.codex
       - agent-bot-log:/logs
       - agent-bot-workspace:/workspace
     environment:
@@ -300,12 +299,6 @@ volumes:
       type: none
       o: bind
       device: /swarm-vol/ssd/agent-bot/log
-  agent-bot-codex-home:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /swarm-vol/ssd/agent-bot/codex-home
 
 networks:
   proxy_app:

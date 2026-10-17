@@ -13,14 +13,15 @@ services:
       - internal
       - frp_net
     volumes:
-      - gitlab-data:/var/opt/gitlab
-      - gitlab-log:/var/log/gitlab
-      - gitlab-config:/etc/gitlab
-      - /etc/localtime:/etc/localtime:ro
+      # Match Docker service update's source/target ordering to avoid replacement.
       - type: bind
         source: /dev/shm
         target: /dev/shm
         read_only: false
+      - /etc/localtime:/etc/localtime:ro
+      - gitlab-config:/etc/gitlab
+      - gitlab-data:/var/opt/gitlab
+      - gitlab-log:/var/log/gitlab
     tmpfs:
       - /tmp:size=4096m
     environment:
@@ -223,9 +224,10 @@ services:
   agent-bot:
     image: hub.aiursoft.com/aiursoft/agentbot:latest
     volumes:
-      - agent-bot-workspace:/workspace
-      - agent-bot-log:/logs
+      # Match Docker service update's source/target ordering to avoid replacement.
       - agent-bot-codex-home:/home/bot/.codex
+      - agent-bot-log:/logs
+      - agent-bot-workspace:/workspace
     environment:
       # To switch back to Claude, set Engine=Claude and Model=aiursoft-super:latest.
       # ApiKey and ApiEndpoint may stay in place because the Codex engine ignores them.

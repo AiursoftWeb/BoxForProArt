@@ -104,7 +104,9 @@ gitlab-runner register \
     --env "LOCAL_NUGET_API_KEY=${LOCAL_NUGET_API_KEY}" \
     --env "NUGET_API_KEY=${NUGET_API_KEY}" \
     --env "APKG_DEV_API_KEY=${APKG_DEV_API_KEY}" \
-    --env "APKG_PROD_API_KEY=${APKG_PROD_API_KEY}"
+    --env "APKG_PROD_API_KEY=${APKG_PROD_API_KEY}" \
+    --env "S360_SERVER=${S360_SERVER}" \
+    --env "S360_CHECK_KEY=${S360_CHECK_KEY}"
 
 echo "Ensuring global buildx builder for CI (as gitlab-runner)..."
 BUILDER_NAME="aiur-global-builder"

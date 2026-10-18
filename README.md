@@ -63,24 +63,31 @@ complete transfers and interactive latency while the uplink is busy.
 To roll back, redeploy the client with `transport.protocol = "kcp"` and
 `serverPort = 7000`, keeping the original KCP listener available.
 
-## AgentBot Codex authentication
+## AgentBot model gateway
 
-The GitLab stack runs AgentBot with the `gpt-5.6-sol` Codex model and persists its ChatGPT login under `/swarm-vol/agent-bot/codex-home`. After the first deployment, find the active Swarm task:
+The GitLab stack runs AgentBot with Copilot CLI and the company OllamaGateway
+provider at `https://ollama.aiursoft.com/v1`. Set `AGENT_BOT_API_KEY` in the
+private deployment environment to the bot's Gateway API key.
 
-```bash
-sudo docker ps \
-  --filter label=com.docker.swarm.service.name=gitlab_agent-bot \
-  --format '{{.ID}}\t{{.Names}}'
-```
+The stack selects the virtual model `aiursoft-codex:latest`. Manage its physical
+model mapping in OllamaGateway so model replacements do not require changing
+AgentBot or this deployment. The declared client settings are:
 
-Use the returned container ID to complete the one-time device login and verify it:
+| Setting | Value |
+| --- | --- |
+| Engine | `Copilot` |
+| Reasoning effort | `xhigh` |
+| Wire API | `responses` |
+| Maximum prompt tokens | `922000` |
+| Maximum output tokens | `128000` |
+| Copilot offline mode | `true` |
 
-```bash
-sudo docker exec -it --user bot <container-id> \
-  codex login -c cli_auth_credentials_store=file --device-auth
+AgentBot passes its configured endpoint, API key and virtual model to Copilot's
+provider environment. This deployment uses provider authentication and requires
+no interactive Codex or GitHub login. Only the workspace and logs are persisted;
+there is no Codex credential mount to initialize.
 
-sudo docker exec --user bot <container-id> \
-  codex login -c cli_auth_credentials_store=file status
-```
-
-Codex stores and refreshes its credentials at `/home/bot/.codex/auth.json`, backed by the host directory above. Treat that directory like a secret. To switch AgentBot back to Claude, change `AgentBot__Engine` to `Claude` and restore `AgentBot__Model=aiursoft-super:latest`; the existing API key and endpoint are deliberately kept in the stack configuration.
+GitLab issues still follow the planning and human approval workflow before
+implementation. This configuration applies to AgentBot; the separate Happier
+worker retains its native Codex setup described in
+[Worker setup and recovery](stage4/stacks/happier/WORKER.md).

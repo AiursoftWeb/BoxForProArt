@@ -708,6 +708,7 @@ sleep 3
 login_to_hub "$(get_env_value "REGISTRY_HOST")" "$(get_env_value "REGISTRY_VERIFICATION_IMAGE")"
 
 print_ok "Building local runner..."
+sudo docker pull mcr.microsoft.com/dotnet/sdk:10.0
 sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
 sudo docker push localhost:8080/box_starting/local_runner:latest
 

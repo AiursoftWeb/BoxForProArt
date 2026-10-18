@@ -1,3 +1,5 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet
+
 FROM localhost:8080/box_starting/local_ubuntu
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -83,7 +85,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       shellcheck \
       grub2-common \
       sbsigntool \
-      dotnet10 \
+      libatomic1 \
+      libicu78 \
+      libssl3t64 \
+      zlib1g \
       gettext \
       wget \
       apt-utils \
@@ -149,6 +154,13 @@ RUN pkg-config --exists gio-2.0 gstreamer-1.0 gstreamer-app-1.0 && \
 
 # Python packages
 RUN pip install PyYAML
+
+# Use Microsoft's runtime build, whose bundled unwinder avoids the system
+# libunwind race in the Ubuntu-packaged runtime during concurrent exceptions.
+COPY --from=dotnet /usr/share/dotnet /usr/share/dotnet
+ENV DOTNET_ROOT=/usr/share/dotnet
+RUN ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
+    dotnet --info
 
 # .NET Global Tools
 RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \

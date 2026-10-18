@@ -65,8 +65,8 @@
 	},
 	"log": {
 		"level": "info",
-		"output": "stdout",
-		"audit": "stdout"
+		"output": "/dev/stdout",
+		"audit": "/dev/stdout"
 	},
 	"extensions": {
 		"search": {

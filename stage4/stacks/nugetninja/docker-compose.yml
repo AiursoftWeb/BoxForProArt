@@ -14,6 +14,8 @@ services:
       - PrBot__Servers__0__UserEmail=nugetninja@outlook.com
       - PrBot__Servers__0__ContributionBranch=users/nugetninja/evergreen
       - PrBot__Servers__0__Token={{NUGET_NINJA_CONTRIBUTE_TOKEN}}
+      - PrBot__Servers__0__HttpTokenEnvironmentVariable=NINJA_SOURCE_TOKEN
+      - NINJA_HTTP_PROFILES={{NINJA_HTTP_PROFILES}}
       - PrBot__Servers__0__OnlyUpdate=false
       - PrBot__LocalizationEnabled=true
       - PrBot__OllamaApiEndpoint=https://ollama.aiursoft.com/api/chat

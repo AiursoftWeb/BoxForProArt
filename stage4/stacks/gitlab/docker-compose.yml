@@ -151,6 +151,7 @@ services:
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com
       - S360_CHECK_KEY={{S360_CHECK_KEY}}
+      - S360_BASELINE_KEY={{S360_BASELINE_KEY}}
     networks:
       - internal
       - proxy_app
@@ -190,6 +191,7 @@ services:
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com
       - S360_CHECK_KEY={{S360_CHECK_KEY}}
+      - S360_BASELINE_KEY={{S360_BASELINE_KEY}}
     networks:
       - internal
       - proxy_app

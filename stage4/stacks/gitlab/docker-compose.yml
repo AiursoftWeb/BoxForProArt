@@ -151,8 +151,6 @@ services:
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com
       - S360_BASELINE_KEY={{S360_BASELINE_KEY}}
-      - ALERTCENTER_SERVER=https://alertcenter.aiursoft.com
-      - ALERTCENTER_API_KEY={{ALERTCENTER_API_KEY}}
     networks:
       - internal
       - proxy_app
@@ -192,8 +190,6 @@ services:
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com
       - S360_BASELINE_KEY={{S360_BASELINE_KEY}}
-      - ALERTCENTER_SERVER=https://alertcenter.aiursoft.com
-      - ALERTCENTER_API_KEY={{ALERTCENTER_API_KEY}}
     networks:
       - internal
       - proxy_app

@@ -38,6 +38,9 @@ mirror_image() {
 echo "Mirroring Ubuntu..."
 mirror_image "ubuntu:26.04"
 
+echo "Mirroring Microsoft .NET SDK..."
+mirror_image "mcr.microsoft.com/dotnet/sdk:10.0"
+
 echo "Mirroring Caddy builder..."
 mirror_image "caddy:builder"
 

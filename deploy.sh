@@ -321,6 +321,36 @@ function deploy() {
     rm "$temp_compose_file"
 }
 
+function apply_gitlab_visibility_policy() {
+    local container update_state target_image
+    local deadline=$((SECONDS + 600))
+
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        update_state=$(sudo -n docker service inspect --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}' gitlab_gitlab)
+        case "$update_state" in
+            paused|rollback_*)
+                print_error "GitLab rollout is $update_state; visibility policy was not applied."
+                return 1
+                ;;
+            completed|"")
+                target_image=$(sudo -n docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' gitlab_gitlab)
+                container=$(sudo -n docker ps --filter label=com.docker.swarm.service.name=gitlab_gitlab --filter health=healthy --format '{{.ID}}')
+                if [ -n "$container" ] && [[ "$container" != *$'\n'* ]] && \
+                    [ "$(sudo -n docker inspect --format '{{.Config.Image}}' "$container")" = "$target_image" ]; then
+                    print_info "Applying GitLab's restricted visibility policy..."
+                    sudo -n docker exec -i "$container" timeout 180 gitlab-rails runner - \
+                        < stage4/stacks/gitlab/application-settings.rb
+                    return
+                fi
+                ;;
+        esac
+        sleep 5
+    done
+
+    print_error "GitLab did not converge to a healthy task within 600s; visibility policy was not applied."
+    return 1
+}
+
 # Zot initializes OIDC during startup; an Authentik rollout can otherwise crash Zot
 # and pause its Swarm update (observed on Global on 2026-10-16).
 # Keep this guard identical across Boxes; only the persisted config path differs.
@@ -751,6 +781,10 @@ find ./stage4 -name 'docker-compose.yml' -print0 | while IFS= read -r -d '' file
     if [ -z "$STACK_FILTER" ] || [[ "$stack_name" == *"$STACK_FILTER"* ]]; then
         print_ok "Deploying stack: $stack_name"
         deploy "$file" "$stack_name"
+
+        if [ "$stack_name" = "gitlab" ]; then
+            apply_gitlab_visibility_policy
+        fi
 
         # If it's a new cluster, slow down the deployment to avoid overwhelming the system
         if [ $serviceCount -lt 10 ]; then

@@ -27,9 +27,19 @@ RUN set -eux; \
     printf 'cli_auth_credentials_store = "file"\n[history]\npersistence = "save-all"\n' > /opt/worker-home/.codex/config.toml; \
     rm /usr/local/bin/docker
 
-# Seed user-scoped tools once into the persistent home, outside the mount at build time.
+# Keep worker CLIs in the image so upgrades also reach existing persistent homes.
+RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
+    dotnet tool install Aiursoft.Kanban.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
+    dotnet tool install Aiursoft.S360.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
+    dotnet tool install Aiursoft.AlertCenter.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
+    /opt/worker-tools/kanban --help && \
+    /opt/worker-tools/s360 --help && \
+    /opt/worker-tools/alertcenter --help && \
+    rm /tmp/worker-nuget.config
+
+# Image tools precede home tools; preserve user-scoped tools and other home data.
 ENV HOME=/home/anduin \
-    PATH=/home/anduin/.local/bin:/home/anduin/.cargo/bin:/home/anduin/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    PATH=/opt/worker-tools:/home/anduin/.local/bin:/home/anduin/.cargo/bin:/home/anduin/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     HAPPIER_SERVER_URL=https://happier.aiursoft.com \
     HAPPIER_WEBAPP_URL=https://happier.aiursoft.com \
     HAPPIER_PUBLIC_SERVER_URL=https://happier.aiursoft.com \

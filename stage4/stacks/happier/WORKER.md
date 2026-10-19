@@ -123,6 +123,13 @@ are seeded into the home on first boot; subsequent boots preserve user changes.
 The seed lives at `/opt/worker-home` so the volume cannot hide it. Installed
 user toolchains persist across image upgrades; update those explicitly when needed.
 
+Kanban (`kanban`), S360 (`s360`) and AlertCenter (`alertcenter`) CLIs are installed
+from the existing Aiursoft NuGet source into `/opt/worker-tools` during the image
+build. This directory precedes home tools in `PATH`, so both new and existing
+homes use the image-provided versions without overwriting home contents. These
+CLIs require their own runtime credentials; none are included in the image.
+APKG, ReSharper and ReportGenerator continue to use the inherited tool seed.
+
 `anduin` has passwordless sudo **inside this container**. System packages installed
 at runtime outside the home disappear when the container is replaced; add required
 system packages to the Dockerfile. Docker CLI is inherited, but no Docker engine

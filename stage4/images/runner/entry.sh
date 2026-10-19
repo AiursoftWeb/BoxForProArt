@@ -106,7 +106,9 @@ gitlab-runner register \
     --env "APKG_DEV_API_KEY=${APKG_DEV_API_KEY}" \
     --env "APKG_PROD_API_KEY=${APKG_PROD_API_KEY}" \
     --env "S360_SERVER=${S360_SERVER}" \
-    --env "S360_BASELINE_KEY=${S360_BASELINE_KEY}"
+    --env "S360_BASELINE_KEY=${S360_BASELINE_KEY}" \
+    --env "ALERTCENTER_SERVER=${ALERTCENTER_SERVER}" \
+    --env "ALERTCENTER_API_KEY=${ALERTCENTER_API_KEY}"
 
 echo "Ensuring global buildx builder for CI (as gitlab-runner)..."
 BUILDER_NAME="aiur-global-builder"

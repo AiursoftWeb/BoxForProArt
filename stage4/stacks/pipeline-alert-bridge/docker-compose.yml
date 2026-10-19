@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/gitlab_pipeline_alert_center_bridge:latest
+    environment:
+      - GITLAB_URL=https://gitlab.aiursoft.com
+      - ALERTCENTER_URL=https://alertcenter.aiursoft.com
+      - GITLAB_GROUPS=aiursoft
+      - GITLAB_ACCESS_TOKEN={{PIPELINE_BRIDGE_GITLAB_TOKEN}}
+      - ALERTCENTER_API_KEY={{PIPELINE_BRIDGE_ALERTCENTER_KEY}}
+    volumes:
+      - credentials:/data
+    networks:
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      replicas: 1
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  credentials:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/pipeline-alert-bridge/credentials
+
+networks:
+  proxy_app:
+    external: true

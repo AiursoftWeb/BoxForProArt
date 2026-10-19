@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet
+FROM localhost:8080/public_mirror/mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet
 
 FROM localhost:8080/box_starting/local_ubuntu
 ENV DEBIAN_FRONTEND=noninteractive

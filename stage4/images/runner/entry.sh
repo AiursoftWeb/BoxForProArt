@@ -18,6 +18,50 @@ else
     exit 1
 fi
 
+# Swarm does not expose cpuset in its service resource specification. Identify
+# this exact task, then constrain it before registration or accepting any jobs.
+: "${CI_TASK_ID:?Swarm task ID is required}"
+: "${CI_CPUSET:?The shared CI CPU set is required}"
+ci_cpuset=$(python3 - <<'PYCPU'
+import os
+import re
+
+value = os.environ["CI_CPUSET"]
+if not re.fullmatch(r"[0-9]+(?:-[0-9]+)?(?:,[0-9]+(?:-[0-9]+)?)*", value):
+    raise SystemExit("CI_CPUSET must be a CPU list or range")
+cpus = set()
+for part in value.split(","):
+    bounds = [int(cpu) for cpu in part.split("-")]
+    first, last = bounds[0], bounds[-1]
+    if not 0 <= last - first < 14:
+        raise SystemExit("Each CI CPU range must contain between 1 and 14 CPUs")
+    cpus.update(range(first, last + 1))
+if len(cpus) != 14:
+    raise SystemExit("The shared CI CPU set must contain exactly 14 CPUs")
+print(",".join(str(cpu) for cpu in sorted(cpus)))
+PYCPU
+)
+runner_ids=$(/usr/bin/docker ps --quiet --no-trunc \
+    --filter "label=com.docker.swarm.task.id=$CI_TASK_ID")
+mapfile -t runner_containers <<< "$runner_ids"
+if [ "${#runner_containers[@]}" -ne 1 ] || [ -z "$runner_ids" ] || \
+   [ "$(/usr/bin/docker inspect --format '{{ index .Config.Labels "com.docker.swarm.task.id" }}' "$runner_ids")" != "$CI_TASK_ID" ]; then
+    echo "Error: cannot uniquely identify this Swarm task's container."
+    exit 1
+fi
+/usr/bin/docker update --cpuset-cpus "$ci_cpuset" "$runner_ids"
+if [ "$(/usr/bin/docker inspect --format '{{.HostConfig.CpusetCpus}} {{.HostConfig.NanoCpus}}' "$runner_ids")" != "$ci_cpuset 6000000000" ]; then
+    echo "Error: runner must use the shared CPU set and its six-CPU quota."
+    exit 1
+fi
+python3 - "$ci_cpuset" <<'PYCPU'
+import os
+import sys
+
+if os.sched_getaffinity(0) != {int(cpu) for cpu in sys.argv[1].split(",")}:
+    raise SystemExit("The runner's effective CPU affinity does not match the CI pool")
+PYCPU
+
 # Load from environment variables
 gitlab_endpoint=${GITLAB_ENDPOINT:-http://gitlab}
 
@@ -108,21 +152,43 @@ gitlab-runner register \
     --env "S360_SERVER=${S360_SERVER}" \
     --env "S360_BASELINE_KEY=${S360_BASELINE_KEY}"
 
+# All runner replicas share one builder. Serialize node configuration and live
+# resource updates, preserving its existing container, state volume and caches.
 echo "Ensuring global buildx builder for CI (as gitlab-runner)..."
 BUILDER_NAME="aiur-global-builder"
-echo "Current buildx builders visible to gitlab-runner:"
-su -s /bin/bash gitlab-runner -c "docker buildx ls"
-if ! su -s /bin/bash gitlab-runner -c "docker buildx ls" | grep -qw "$BUILDER_NAME"; then
-    echo "Builder '$BUILDER_NAME' not found. Creating with docker-container driver and host networking..."
-    su -s /bin/bash gitlab-runner -c "docker buildx create --name \"$BUILDER_NAME\" --driver docker-container --use --bootstrap"
-    echo "Builder created and bootstrapped. Supported platforms:"
-    su -s /bin/bash gitlab-runner -c "docker buildx inspect \"$BUILDER_NAME\" | grep Platforms"
-else
-    echo "Builder '$BUILDER_NAME' already exists. Setting as active..."
-    su -s /bin/bash gitlab-runner -c "docker buildx use \"$BUILDER_NAME\""
-    echo "Builder status:"
-    su -s /bin/bash gitlab-runner -c "docker buildx inspect \"$BUILDER_NAME\"" | grep -E 'Status|Platforms'
+builder_node="${BUILDER_NAME}0"
+builder_container="buildx_buildkit_$builder_node"
+exec 8>"/runner-data/.builder.lock"
+flock -x 8
+if builder_info=$(sudo -H -u gitlab-runner /usr/local/bin/docker buildx inspect "$BUILDER_NAME" 2>/dev/null); then
+    builder_layout=$(printf '%s\n' "$builder_info" | awk '
+        $1 == "Driver:" { driver = $2 }
+        $1 == "Name:" { names = names " " $2 }
+        END { print driver names }')
+    if [ "$builder_layout" != "docker-container $BUILDER_NAME $builder_node" ]; then
+        echo "Error: the shared builder must have exactly its expected docker-container node."
+        exit 1
+    fi
 fi
+# Supplying the existing node updates its durable driver options. The Docker
+# wrapper retains network=host; no builder removal or cache pruning is needed.
+sudo -H -u gitlab-runner /usr/local/bin/docker buildx create \
+    --name "$BUILDER_NAME" --node "$builder_node" \
+    --driver docker-container --use \
+    --driver-opt "\"cpuset-cpus=$ci_cpuset\"" \
+    --driver-opt cpu-period=100000 --driver-opt cpu-quota=1400000
+# Bootstrap does not update an already-created container's resource limits.
+if /usr/bin/docker container inspect "$builder_container" > /dev/null 2>&1; then
+    /usr/bin/docker update --cpuset-cpus "$ci_cpuset" \
+        --cpu-period 100000 --cpu-quota 1400000 "$builder_container"
+fi
+sudo -H -u gitlab-runner /usr/local/bin/docker buildx inspect --bootstrap "$BUILDER_NAME"
+if [ "$(/usr/bin/docker inspect --format '{{.HostConfig.CpusetCpus}} {{.HostConfig.CpuPeriod}} {{.HostConfig.CpuQuota}}' "$builder_container")" != "$ci_cpuset 100000 1400000" ]; then
+    echo "Error: BuildKit must use the shared CPU set and its fourteen-CPU quota."
+    exit 1
+fi
+flock -u 8
+exec 8>&-
 
 # Keep the shared lock while this runner can accept jobs. The cleaner requests a
 # graceful drain with .cleanup.request, then waits for the exclusive lock.

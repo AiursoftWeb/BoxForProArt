@@ -135,6 +135,9 @@ services:
     environment:
       # Use public endpoint so the jobrunner can access GitLab.
       # The actual jobrunner will not use the internal endpoint.
+      # All runners and the shared BuildKit use these same 14 logical CPUs.
+      - CI_CPUSET=4-17
+      - CI_TASK_ID={{.Task.ID}}
       - GITLAB_ENDPOINT=http://gitlab
       - GITLAB_RUNNER_TOKEN={{GITLAB_RUNNER_TOKEN}}
       - REGISTRY_HOST={{REGISTRY_HOST}}
@@ -174,6 +177,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - gitlab-runner-data:/runner-data
     environment:
+      # All runners and the shared BuildKit use these same 14 logical CPUs.
+      - CI_CPUSET=4-17
+      - CI_TASK_ID={{.Task.ID}}
       - GITLAB_ENDPOINT=http://gitlab
       - GITLAB_RUNNER_TOKEN={{GITLAB_RUNNER_TOKEN_FOR_GROUP}}
       - REGISTRY_HOST={{REGISTRY_HOST}}

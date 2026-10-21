@@ -9,4 +9,20 @@
             <log_query_threads>0</log_query_threads>
         </default>
     </profiles>
+    <users>
+        <gitlab_ci_collector>
+            <password from_env="GITLAB_CI_COLLECTOR_CLICKHOUSE_PASSWORD"/>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <grants>
+                <query>GRANT SELECT, INSERT ON GitLabMetrics.api_jobs</query>
+                <query>GRANT SELECT, INSERT ON GitLabMetrics.api_project_sync</query>
+                <query>GRANT SELECT, INSERT ON GitLabMetrics.api_sync_runs</query>
+                <query>GRANT SELECT ON GitLabMetrics.api_jobs_latest</query>
+            </grants>
+        </gitlab_ci_collector>
+    </users>
 </clickhouse>

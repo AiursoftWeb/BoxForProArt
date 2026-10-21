@@ -10,8 +10,8 @@ services:
       - GITLAB_ACCESS_TOKEN={{GITLAB_CI_COLLECTOR_TOKEN}}
       - CLICKHOUSE_URL=http://clickhouse_clickhouse:8123
       - CLICKHOUSE_DATABASE=GitLabMetrics
-      - CLICKHOUSE_USER=gitlab_ci_collector
-      - CLICKHOUSE_PASSWORD={{GITLAB_CI_COLLECTOR_CLICKHOUSE_PASSWORD}}
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=123456
     networks:
       - clickhouse_net
     healthcheck:

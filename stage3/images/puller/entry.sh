@@ -324,6 +324,7 @@ images=(
     "nextcloud:27.1.0"
     "nextcloud:31.0.7"
     "nextcloud:32.0.5"
+    "nextcloud:32.0.15-apache"
     "nextcloud:production"
     "nextcloud:stable"
     "nginx"

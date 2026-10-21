@@ -5,7 +5,7 @@ services:
     image: hub.aiursoft.com/aiursoft/internalimages/gitlab-ci-collector:latest
     environment:
       - GITLAB_URL=https://gitlab.aiursoft.com
-      - GITLAB_SOURCE=gitlab.aiursoft.com
+      - GITLAB_SOURCE=gitlab_aiursoft_com
       - GITLAB_GROUPS=aiursoft
       - GITLAB_ACCESS_TOKEN={{GITLAB_CI_COLLECTOR_TOKEN}}
       - CLICKHOUSE_URL=http://clickhouse_clickhouse:8123
@@ -14,6 +14,7 @@ services:
       - CLICKHOUSE_PASSWORD=123456
     networks:
       - clickhouse_net
+      - proxy_app
     healthcheck:
       start_period: 6h
     stop_grace_period: 60s
@@ -31,4 +32,6 @@ services:
 
 networks:
   clickhouse_net:
+    external: true
+  proxy_app:
     external: true

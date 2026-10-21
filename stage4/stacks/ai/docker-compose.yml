@@ -72,6 +72,10 @@ services:
       - ConnectionStrings__DefaultConnection=Server=ollama-gateway-db;Database=ollama_gateway;Uid=ollama_gateway;Pwd=<ollama_gateway_password>;
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
+      - GlobalSettings__AlertCenter_Enabled=true
+      - GlobalSettings__AlertCenter_Endpoint=https://alertcenter.aiursoft.com
+      - GlobalSettings__AlertCenter_ApiKey={{OLLAMA_GATEWAY_ALERTCENTER_API_KEY}}
+      - GlobalSettings__AlertCenter_PublicBaseUrl=https://ollama.aiursoft.com
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/ollama-gateway
       - AppSettings__OIDC__ClientId={{OLLAMA_GATEWAY_CLIENT_ID}}

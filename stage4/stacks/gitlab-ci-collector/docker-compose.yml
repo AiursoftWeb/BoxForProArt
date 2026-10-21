@@ -14,6 +14,7 @@ services:
       - CLICKHOUSE_PASSWORD=123456
     networks:
       - clickhouse_net
+      - proxy_app
     healthcheck:
       start_period: 6h
     stop_grace_period: 60s
@@ -31,4 +32,6 @@ services:
 
 networks:
   clickhouse_net:
+    external: true
+  proxy_app:
     external: true

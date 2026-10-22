@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/http_error_alert_center_bridge:latest
+    environment:
+      - SERVER_NAME=proart
+      - MONITORED_HOSTS=*
+      - CLICKHOUSE_CONNECTION_STRING=Host=clickhouse_clickhouse;Protocol=http;Port=8123;Database=logs;User=default;Password=123456
+      - ALERTCENTER_URL=https://alertcenter.aiursoft.com
+      - ALERTCENTER_API_KEY={{HTTP_ERROR_ALERTCENTER_API_KEY}}
+    volumes:
+      - data:/data
+    networks:
+      - clickhouse_net
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      replicas: 1
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/http-error-alert-bridge/data
+
+networks:
+  clickhouse_net:
+    external: true
+  proxy_app:
+    external: true

@@ -313,6 +313,7 @@ public_images=(
 # Aiursoft images actually consumed by BoxForChina. They use the same relaxed
 # eight-hour schedule as public images; GitLab CI no longer pushes them to CN.
 internal_images=(
+    "aiursoft/http_error_alert_center_bridge:latest"
     "aiursoft/employeecenter:latest"
     "aiursoft/folderagent:latest"
     "aiursoft/musicexam:latest"

@@ -12,6 +12,10 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=s360;Uid=s360;Pwd={{S360_MYSQL_PASSWORD}};
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
+      - GlobalSettings__AlertCenter_Enabled=true
+      - GlobalSettings__AlertCenter_Endpoint=https://alertcenter.aiursoft.com
+      - GlobalSettings__AlertCenter_ApiKey={{S360_ALERTCENTER_API_KEY}}
+      - GlobalSettings__AlertCenter_PublicBaseUrl=https://s360.aiursoft.com
       - SupplyChain__NuGetSources__0=https://nuget.aiursoft.com/v3/index.json
       - SupplyChain__NpmSources__0=https://npm.aiursoft.com
       - AppSettings__DefaultRole=Employees

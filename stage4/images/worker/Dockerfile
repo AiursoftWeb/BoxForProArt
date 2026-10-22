@@ -3,7 +3,7 @@ FROM localhost:8080/box_starting/local_runner:latest
 ARG HAPPIER_VERSION=0.2.16
 ARG CODEX_VERSION=0.162.1
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends tini openssh-client && \
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs tini openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g @happier-dev/cli@${HAPPIER_VERSION} @openai/codex@${CODEX_VERSION} && \
     happier --version && codex --version

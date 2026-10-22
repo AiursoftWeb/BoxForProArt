@@ -5,38 +5,7 @@ services:
     image: hub.aiursoft.com/aiursoft/http_error_alert_center_bridge:latest
     environment:
       - SERVER_NAME=proart
-      - >-
-        MONITORED_HOSTS=apkg-dev.aiursoft.com,
-        charter.aiursoft.com,
-        clickhouse-proart.aiursoft.com,
-        cpprunner.aiursoft.com,
-        drive-files.aiursoft.com,
-        drive.aiursoft.com,
-        gitlab.aiursoft.com,
-        gitmirror.aiursoft.com,
-        grafana-proart.aiursoft.com,
-        happier.aiursoft.com,
-        hub.aiursoft.com,
-        immich.aiursoft.com,
-        lab.aiursoft.com,
-        mc.aiursoft.com,
-        mc.anduinlab.com,
-        media.aiursoft.com,
-        mirror-ppa.aiursoft.com,
-        mirror.aiursoft.com,
-        nextcloud.aiursoft.com,
-        npm.aiursoft.com,
-        nuget.aiursoft.com,
-        ocr.aiursoft.com,
-        ollama.aiursoft.com,
-        openweb.aiursoft.com,
-        ranking.anduinlab.com,
-        s360.aiursoft.com,
-        speeches.aiursoft.com,
-        stt.aiursoft.com,
-        test.aiursoft.com,
-        tts.aiursoft.com,
-        wiki.anduinlab.com
+      - MONITORED_HOSTS=*
       - CLICKHOUSE_CONNECTION_STRING=Host=clickhouse_clickhouse;Protocol=http;Port=8123;Database=logs;User=default;Password=123456
       - ALERTCENTER_URL=https://alertcenter.aiursoft.com
       - ALERTCENTER_API_KEY={{HTTP_ERROR_ALERTCENTER_API_KEY}}

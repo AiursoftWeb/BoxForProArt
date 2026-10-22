@@ -12,6 +12,10 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=gitmirror;Uid=gitmirror;Pwd=<gitmirror_password>;
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
+      - GlobalSettings__AlertCenter_Enabled=true
+      - GlobalSettings__AlertCenter_Endpoint=https://alertcenter.aiursoft.com
+      - GlobalSettings__AlertCenter_ApiKey={{GITMIRROR_ALERTCENTER_API_KEY}}
+      - GlobalSettings__AlertCenter_PublicBaseUrl=https://gitmirror.aiursoft.com
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/gitmirror
       - AppSettings__OIDC__ClientId={{GITMIRROR_CLIENT_ID}}

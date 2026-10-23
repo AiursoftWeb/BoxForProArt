@@ -21,8 +21,8 @@ services:
       HAPPIER_SERVER_LIGHT_DATA_DIR: /data/happier
       HAPPIER_PUBLIC_SERVER_URL: https://happier.aiursoft.com
       HAPPIER_WEBAPP_URL: https://happier.aiursoft.com
-      # Caddy is the public ingress; no host port is published.
-      HAPPIER_SERVER_TRUST_PROXY: '1'
+      # Trust Caddy's proxy_app overlay, allocated by deploy.sh; no host port is published.
+      HAPPIER_SERVER_TRUST_PROXY: '10.235.0.0/16'
       HAPPIER_FEATURE_ENCRYPTION__STORAGE_POLICY: required_e2ee
       AUTH_ANONYMOUS_SIGNUP_ENABLED: 'false'
       AUTH_SIGNUP_PROVIDERS: ''

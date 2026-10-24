@@ -142,7 +142,9 @@ function install_yq() {
 
 function ensure_docker_ready() {
     if [ "$(sudo docker info --format '{{.Swarm.LocalNodeState}}')" != "inactive" ]; then
-        sudo python3 "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py"
+        sudo systemd-run --wait --collect --property=Type=exec \
+            --property=SyslogIdentifier=box-docker-network \
+            python3 "$(realpath "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py")"
     fi
 
     # Add user to docker group
@@ -573,7 +575,9 @@ fi
 # Docker Daemon Configuration End
 #=============================
 
-sudo python3 "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py"
+sudo systemd-run --wait --collect --property=Type=exec \
+            --property=SyslogIdentifier=box-docker-network \
+            python3 "$(realpath "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py")"
 
 print_warn "=============================================================================="
 print_warn "   Starting stage 0: Mission is to start a simple registry"

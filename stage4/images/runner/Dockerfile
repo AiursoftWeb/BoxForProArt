@@ -95,6 +95,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       dpkg \
       appstream \
       util-linux \
+      kmod \
+      cpio \
+      zstd \
       librsvg2-bin \
       sassc \
       iproute2 \

@@ -168,36 +168,6 @@ services:
         order: stop-first
         delay: 60s
 
-  smb:
-    image: hub.aiursoft.com/andyzhangx/samba:win-fix
-    volumes:
-      - external:/mount
-    environment:
-      - WORKGROUP=WORKGROUP
-    ports:
-      - target: 445
-        published: 445
-        protocol: tcp
-        mode: host
-    # -s <name;/path>;browsable(yes);readonly(no);guestok(yes);users(all);admins(none);writelist(none);comment(string)
-    #command: "-p -n -u 'USER;PASSWORD' -w 'WORKGROUP' -S -s 'media;/mount;yes;no;no;all;none;none;Media Share;force user = nobody;force group = nogroup;force create mode = 0666;force directory mode = 0777'"
-    command: "-p -n -u 'USER;PASSWORD' -w 'WORKGROUP' -S -s 'media;/mount;yes;no;no;all;none;none;Media Share;create mask = 0777;directory mask = 0777;force user = nobody;force group = nogroup;force create mode = 0666;force directory mode = 0777'"
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD", "smbclient", "-L", "//localhost", "-U", "USER%PASSWORD"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      labels:
-        shepherd.autoupdate: "true"
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-      update_config:
-        order: stop-first
-        delay: 60s
 
 networks:
   internal:

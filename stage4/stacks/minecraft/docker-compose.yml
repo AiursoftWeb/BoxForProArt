@@ -13,7 +13,7 @@ services:
       - proxy_app
       - frp_net
     ports:
-      # These ports are for internal use. For external, FRP will handle it.
+      # Java and Bedrock allow direct public IPv4/IPv6 access; FRP remains available.
       - target: 25565
         published: 25565
         protocol: tcp

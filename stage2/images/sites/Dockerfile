@@ -30,6 +30,9 @@ RUN /bin/bash /app/build_proxy.sh
 # Prepare Runtime Environment
 FROM localhost:8080/public_mirror/caddy:latest
 
+# Keep scheduled log rotation independent of daylight-saving changes.
+ENV TZ=UTC
+
 WORKDIR /app
 
 EXPOSE 80 443
@@ -44,4 +47,4 @@ RUN caddy fmt --overwrite /etc/caddy/Caddyfile && \
     mkdir -p /var/log/caddy /data/caddy/logs && \
     touch /data/caddy/logs/web.log
 
-ENTRYPOINT ["sh", "-c", "caddy run --config /etc/caddy/Caddyfile --adapter caddyfile & tail -f /data/caddy/logs/web.log & wait"]
+ENTRYPOINT ["sh", "-c", "caddy run --config /etc/caddy/Caddyfile --adapter caddyfile & tail -F /data/caddy/logs/web.log & wait"]

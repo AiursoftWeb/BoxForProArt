@@ -49,7 +49,7 @@ def create_ch_client():
 
 
 def ensure_schema():
-    """Create database and table if they do not exist."""
+    """Create the log table and apply its 120-day retention policy."""
     # Connect without specifying database to create it
     secure = CH_URL.startswith('https')
     parts = CH_URL.split('://')[-1].split(':')
@@ -78,8 +78,17 @@ def ensure_schema():
             err_trace String
         ) ENGINE = MergeTree()
         ORDER BY (host, ts)
+        TTL ts + INTERVAL 120 DAY DELETE
     ''')
     logger.info("Ensured table %s.%s exists", CH_DB, CH_TABLE)
+
+    # CREATE IF NOT EXISTS does not update tables created before this policy.
+    # Compare ClickHouse's normalized TTL to avoid materializing it on every restart.
+    schema = c.query(f'SHOW CREATE TABLE {CH_DB}.{CH_TABLE}').result_rows[0][0]
+    ttl = 'TTL ts + toIntervalDay(120)'
+    if not any(line.strip() in (ttl, f'{ttl} DELETE') for line in schema.splitlines()):
+        c.command(f'ALTER TABLE {CH_DB}.{CH_TABLE} MODIFY TTL ts + INTERVAL 120 DAY DELETE')
+        logger.info("Applied 120-day retention to %s.%s", CH_DB, CH_TABLE)
 
 
 def get_last_timestamp():

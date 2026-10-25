@@ -140,25 +140,31 @@ function install_yq() {
     sudo chmod +x /usr/bin/yq
 }
 
-function ensure_docker_ready() {
-    if [ "$(sudo docker info --format '{{.Swarm.LocalNodeState}}')" != "inactive" ]; then
-        sudo systemd-run --wait --collect --property=Type=exec \
-            --property=SyslogIdentifier=box-docker-network \
-            python3 "$(realpath "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py")"
+function ensure_docker_network() {
+    local swarm
+    swarm=$(sudo docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}} {{.Swarm.Nodes}}')
+    [[ "$swarm" = "inactive false 0" || "$swarm" = "active true 1" ]] || { echo "Expected a new host or an independent Swarm manager." >&2; return 1; }
+    sudo test ! -f /var/lib/box-docker-network/pending.json || { echo "Finish the pending network migration before deploying." >&2; return 1; }
+    sudo jq -e '."userland-proxy" == false' /etc/docker/daemon.json >/dev/null || { echo "Configure userland-proxy=false before initializing the gateway." >&2; return 1; }
+    if sudo docker network inspect docker_gwbridge >/dev/null 2>&1; then
+        [ "$(sudo docker network inspect --format '{{.Driver}} {{.EnableIPv6}} {{index .Options "com.docker.network.bridge.name"}}' docker_gwbridge)" = "bridge true docker_gwbridge" ] || { echo "Existing Docker gateway is not dual-stack; migrate it before deploying." >&2; return 1; }
+    else
+        [ "$swarm" = "inactive false 0" ] || { echo "Active Swarm has no gateway; repair it before deploying." >&2; return 1; }
+        sudo docker network create --driver bridge --ipv6 --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge
     fi
-
-    # Add user to docker group
-    sudo usermod -aG docker $USER
+    if [ "$swarm" = "inactive false 0" ]; then
+        sudo docker swarm init --advertise-addr "$(hostname -I | awk '{print $1}')"
+    fi
 }
 
 function ensure_packages_needed_ready() {
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y python3 wsdd valgrind curl wget jq apt-transport-https ca-certificates docker-compose-v2 docker.io qemu-user-binfmt docker-buildx
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y wsdd valgrind curl wget jq apt-transport-https ca-certificates docker-compose-v2 docker.io qemu-user-binfmt docker-buildx
 
     # Install yq. (Run install_yq only if the /usr/bin/yq does not exist.)
     [ -f /usr/bin/yq ] || install_yq
 
-    # Install docker
-    ensure_docker_ready
+    # Add user to docker group
+    sudo usermod -aG docker $USER
 }
 
 function ensure_nvidia_gpu() {
@@ -466,15 +472,10 @@ else
     old_hash_nvidia=""
 fi
 
-docker_bridge_setting=$(sudo python3 - <<'PYTHON'
-import json
-from pathlib import Path
-config = Path('/etc/docker/daemon.json')
-bip = json.loads(config.read_text()).get('bip') if config.exists() else None
-if bip:
-    print('"bip": ' + json.dumps(bip) + ',')
-PYTHON
-)
+docker_bridge_setting=""
+if [ -f /etc/docker/daemon.json ]; then
+    docker_bridge_setting=$(sudo jq -r 'if .bip then "\"bip\": \(.bip | tojson)," else "" end' /etc/docker/daemon.json)
+fi
 
 if [ -f /usr/bin/nvidia-smi ]; then
   print_ok "Nvidia GPU detected. Configuring for Nvidia..."
@@ -575,9 +576,7 @@ fi
 # Docker Daemon Configuration End
 #=============================
 
-sudo systemd-run --wait --collect --property=Type=exec \
-            --property=SyslogIdentifier=box-docker-network \
-            python3 "$(realpath "$(dirname "${BASH_SOURCE[0]}")/ensure-docker-network.py")"
+ensure_docker_network
 
 print_warn "=============================================================================="
 print_warn "   Starting stage 0: Mission is to start a simple registry"

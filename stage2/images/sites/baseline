@@ -2,13 +2,18 @@
 	# Email for Let's Encrypt notifications (certificate expiration, etc.)
 	email anduin@aiursoft.com
 	
-	# Global ACME configuration for Let's Encrypt DNS-01 challenge
-	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN} {
-		resolver 1.1.1.1
-		# The home router intercepts all UDP port 53 queries for *.aiursoft.com,
-		# so certmagic's local DNS propagation check always returns empty.
-		# Skip the check (propagation_timeout -1ns) and wait 60s for Cloudflare
-		# to propagate the TXT record before notifying the ACME server.
+	# DNS challenge timing belongs to the ACME issuer, not the DNS provider.
+	cert_issuer acme {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1
+		# The router intercepts local UDP DNS; the CA verifies the public TXT record.
+		propagation_timeout -1ns
+		propagation_delay 60s
+	}
+	cert_issuer acme {
+		dir https://acme.zerossl.com/v2/DV90
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1
 		propagation_timeout -1ns
 		propagation_delay 60s
 	}

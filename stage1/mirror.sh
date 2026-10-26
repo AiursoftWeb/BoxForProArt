@@ -67,4 +67,4 @@ echo "Mirroring GoAuthentik server..."
 mirror_image "ghcr.io/goauthentik/server:2026.8.5"
 
 echo "Mirroring npm Verdaccio..."
-mirror_image "verdaccio/verdaccio"
+mirror_image "verdaccio/verdaccio:6"

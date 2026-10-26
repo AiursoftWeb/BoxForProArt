@@ -393,7 +393,7 @@ images=(
     "valkey/valkey:8-bookworm"
     "vaultwarden/server"
     "vaultwarden/server:testing"
-    "verdaccio/verdaccio"
+    "verdaccio/verdaccio:6"
     "vikunja/vikunja"
     "vikunja/vikunja:unstable"
     "vllm/vllm-openai"

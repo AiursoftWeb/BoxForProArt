@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   npm:
-    image: localhost:8080/public_mirror/verdaccio/verdaccio
+    image: localhost:8080/public_mirror/verdaccio/verdaccio:6
     volumes:
       - npm-data:/verdaccio/storage
       - npm-config:/verdaccio/conf

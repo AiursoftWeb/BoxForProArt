@@ -319,7 +319,6 @@ internal_images=(
     "aiursoft/musicexam:latest"
     "aiursoft/tracer:latest"
     "aiursoft/wechatexam:latest"
-    "aiursoft/wechatexamv2:latest"
 )
 
 image_specs=()

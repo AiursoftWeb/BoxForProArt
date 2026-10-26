@@ -155,7 +155,7 @@ services:
   mcpo:
     depends_on:
       - code-runner
-    image: hub.aiursoft.com/ghcr.io/open-webui/mcpo:main
+    image: hub.aiursoft.com/aiursoft/internalimages/mcpo:latest
     networks:
       - internal
     volumes:
@@ -172,6 +172,30 @@ services:
         order: start-first
         delay: 5s
     entrypoint: ["mcpo", "--config", "/data/config.json"]
+    healthcheck:
+      # A 200 response with no tool paths is not a working MCP proxy.
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -c
+        - |
+          import json, sys
+          from urllib.request import urlopen
+          from urllib.parse import quote
+          with open("/data/config.json") as config:
+              servers = json.load(config)["mcpServers"]
+          for name in servers:
+              try:
+                  with urlopen("http://127.0.0.1:8000/" + quote(name, safe="") + "/openapi.json", timeout=1) as response:
+                      if json.load(response).get("paths"):
+                          sys.exit(0)
+              except (OSError, ValueError):
+                  pass
+          sys.exit(1)
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 5m
 
   codex-proxy:
     image: hub.aiursoft.com/aiursoft/internalimages/codexproxy:latest

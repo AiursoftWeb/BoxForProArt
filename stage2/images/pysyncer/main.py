@@ -13,7 +13,7 @@ import logging
 from clickhouse_connect import get_client
 
 # === Logging setup ===
-logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(asctime)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
 # === Configuration ===
@@ -182,7 +182,6 @@ def transform(rec):
         str(rec.get('err_id', '')),
         str(rec.get('err_trace', ''))
     )
-    logger.debug("Transformed row: %s", row)
     return row
 
 
@@ -204,7 +203,7 @@ async def flusher(queue):
                 logger.info("Flushing %d rows to ClickHouse", len(batch))
                 client.insert(CH_TABLE, batch, column_names=COLUMNS)
             except Exception as e:
-                logger.error("Insert failed: %s", e)
+                logger.error("Insert failed (%s)", type(e).__name__)
             batch.clear()
             batch_start = time.time()
     if batch:
@@ -212,7 +211,7 @@ async def flusher(queue):
             logger.info("Final flush of %d rows", len(batch))
             client.insert(CH_TABLE, batch, column_names=COLUMNS)
         except Exception as e:
-            logger.error("Final insert failed: %s", e)
+            logger.error("Final insert failed (%s)", type(e).__name__)
 
 
 async def reader(queue):
@@ -253,7 +252,7 @@ async def reader(queue):
         try:
             row = transform(rec)
         except Exception as e:
-            logger.error("Transform error: %s", e)
+            logger.error("Transform error (%s)", type(e).__name__)
             continue
         await queue.put(row)
         logger.debug("Row queued, timestamp=%s", row[0])

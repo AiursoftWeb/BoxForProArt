@@ -47,4 +47,4 @@ RUN caddy fmt --overwrite /etc/caddy/Caddyfile && \
     mkdir -p /var/log/caddy /data/caddy/logs && \
     touch /data/caddy/logs/web.log
 
-ENTRYPOINT ["sh", "-c", "caddy run --config /etc/caddy/Caddyfile --adapter caddyfile & tail -F /data/caddy/logs/web.log & wait"]
+ENTRYPOINT ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

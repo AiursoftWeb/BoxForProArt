@@ -1,6 +1,6 @@
 FROM localhost:8080/box_starting/local_runner:latest
 
-ARG HAPPIER_VERSION=0.2.16
+ARG HAPPIER_VERSION=0.2.17
 ARG CODEX_VERSION=0.162.1
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs tini openssh-client && \
@@ -28,6 +28,11 @@ RUN set -eux; \
     rm /usr/local/bin/docker
 
 # Keep worker CLIs in the image so upgrades also reach existing persistent homes.
+RUN curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/install-agy.sh && \
+    bash /tmp/install-agy.sh --dir /opt/worker-tools && \
+    /opt/worker-tools/agy --version && /opt/worker-tools/agy --help && \
+    rm /tmp/install-agy.sh
+
 RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.Kanban.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.S360.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \

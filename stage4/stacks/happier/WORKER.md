@@ -26,7 +26,7 @@ selects which stacks to deploy.
 
 Images are built and pushed to the existing bootstrap registry; the public image
 puller needs no new image entry. Worker inherits runner, and installs pinned
-stable npm releases (`@happier-dev/cli` 0.2.16 and `@openai/codex` 0.162.1) while
+stable npm releases (`@happier-dev/cli` 0.2.17 and `@openai/codex` 0.162.1) while
 building, using runner's npm registry configuration. No packages are downloaded
 during normal container startup.
 
@@ -130,6 +130,16 @@ homes use the image-provided versions without overwriting home contents. These
 CLIs require their own runtime credentials; none are included in the image.
 APKG, ReSharper and ReportGenerator continue to use the inherited tool seed.
 
+Antigravity CLI (`agy`) is installed into `/opt/worker-tools` using Google's
+official installer, which verifies the release against its published checksum.
+It uses the same image-first PATH, so an older home-installed `agy` cannot hide
+the image version. Authentication is performed at runtime and is not baked into
+the image. The interactive `agy` login and Happier's ACP login are separate:
+run `happier agy auth login` as the worker user before starting Antigravity
+sessions in Happier. Its managed ACP server and credentials live in the
+persistent home. Happier 0.2.17 admits Antigravity's negotiated session modes,
+fixing the `Agent-native selection is invalid` launch error from 0.2.16.
+
 `anduin` has passwordless sudo **inside this container**. System packages installed
 at runtime outside the home disappear when the container is replaced; add required
 system packages to the Dockerfile. Docker CLI is inherited, but no Docker engine
@@ -171,7 +181,7 @@ each original Happier session ID and workspace. Codex resumes its stored thread.
 It does not create replacement conversations or inject a continuation prompt.
 Already queued user messages can run after restoration; otherwise send a message
 to continue. This integration uses the local API and session markers of the pinned
-Happier 0.2.16 CLI; repeat crash tests when upgrading it.
+Happier CLI; repeat crash tests when upgrading it.
 
 Missing workspaces or failed restores leave a pending recovery record and a log
 message. The original conversation remains on the relay. After correcting the

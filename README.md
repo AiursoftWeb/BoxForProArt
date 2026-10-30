@@ -49,19 +49,16 @@ sudo bash deploy.sh
 
 ## FRP transport deployment
 
-The FRP client uses QUIC on UDP port 9700. Before deploying this client,
-configure the gateway's FRPS with the top-level setting `quicBindPort = 9700`
-and allow UDP 9700 through its firewall. Keep the existing TCP/KCP listeners
-on port 7000 available for rollback. The gateway configuration is managed
-separately from this repository; verify its configuration source and apply
-the server change first during a maintenance window.
+The FRP client uses KCP on UDP port 7000. Verify that the separately managed
+gateway's FRPS has `kcpBindPort = 7000` and allows UDP 7000 before deployment.
+Keep its existing QUIC listener on UDP 9700 available as a fallback.
 
 The transport change affects every proxy, including HTTP, HTTPS, GitLab SSH
 and Minecraft. Existing per-proxy bandwidth limits, compression and PROXY
 protocol settings are retained. After deployment, check these services,
 complete transfers and interactive latency while the uplink is busy.
-To roll back, redeploy the client with `transport.protocol = "kcp"` and
-`serverPort = 7000`, keeping the original KCP listener available.
+To return to QUIC, redeploy the client with `transport.protocol = "quic"`
+and `serverPort = 9700` after verifying the gateway's QUIC listener.
 
 ## AgentBot model gateway
 

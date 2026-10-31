@@ -1,15 +1,17 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "Fetching Cloudflare IP ranges..."
 
 # Fetch IPv4 ranges
 echo "Fetching IPv4 ranges from https://www.cloudflare.com/ips-v4"
-IPV4_RANGES=$(curl -s https://www.cloudflare.com/ips-v4 | tr '\n' ' ')
+IPV4_RANGES=$(curl -fLsS --connect-timeout 10 --max-time 60 --retry 3 https://www.cloudflare.com/ips-v4/ | tr '\n' ' ')
 
 # Fetch IPv6 ranges
 echo "Fetching IPv6 ranges from https://www.cloudflare.com/ips-v6"
-IPV6_RANGES=$(curl -s https://www.cloudflare.com/ips-v6 | tr '\n' ' ')
+IPV6_RANGES=$(curl -fLsS --connect-timeout 10 --max-time 60 --retry 3 https://www.cloudflare.com/ips-v6/ | tr '\n' ' ')
+
+[ -n "$IPV4_RANGES" ] && [ -n "$IPV6_RANGES" ] || { echo "Cloudflare returned empty IP ranges" >&2; exit 1; }
 
 # Combine all ranges
 ALL_RANGES="$IPV4_RANGES $IPV6_RANGES"

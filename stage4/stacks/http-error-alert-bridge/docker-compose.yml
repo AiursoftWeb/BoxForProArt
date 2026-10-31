@@ -6,6 +6,7 @@ services:
     environment:
       - SERVER_NAME=proart
       - MONITORED_HOSTS=*
+      - HTTP_ABUSE_ENABLED=true
       - CLICKHOUSE_CONNECTION_STRING=Host=clickhouse_clickhouse;Protocol=http;Port=8123;Database=logs;User=default;Password=123456
       - ALERTCENTER_URL=https://alertcenter.aiursoft.com
       - ALERTCENTER_API_KEY={{HTTP_ERROR_ALERTCENTER_API_KEY}}

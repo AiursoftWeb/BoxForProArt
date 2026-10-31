@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/internalimages/badge-proxy:latest
+    environment:
+      - GITLAB_URL=http://gitlab_gitlab
+      - GITLAB_ACCESS_TOKEN={{BADGE_PROXY_GITLAB_TOKEN}}
+      - ALLOWED_PROJECTS=aiurdrive:master,alertcenter:master,anduinoshome:master,apkg:master,baget:master,chessserver:master,corphome:master,cpprunner:master,docsviewer:master,employeecenter:master,eventsrecorder:master,gitmirrorserver:master,howtocookviewer:master,kanban:master,manhours:master,marktohtml:master,moongladev2:master,musicexam:master,musictools:master,ollamagateway:master,polls:master,s360:master,stathub:master,template:master,tracer:master,translate:master,uistack:master,warp:master
+    networks:
+      - proxy_app
+    stop_grace_period: 20s
+    deploy:
+      replicas: 1
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+      update_config:
+        order: start-first
+        delay: 5s
+
+networks:
+  proxy_app:
+    external: true

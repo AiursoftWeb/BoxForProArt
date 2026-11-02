@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  app:
+    image: hub.aiursoft.com/aiursoft/clickhouse_app_log_error_monitor:latest
+    environment:
+      - NODE_NAME=proart
+      - CLICKHOUSE_URL=http://clickhouse_clickhouse:8123
+      - CLICKHOUSE_DATABASE=AspNetCoreLogs
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=123456
+      - ALERTCENTER_URL=https://alertcenter.aiursoft.com
+      - ALERTCENTER_API_KEY={{CLICKHOUSE_APP_LOG_ERROR_MONITOR_API_KEY}}
+      - STATE_DIR=/data
+    volumes:
+      - data:/data
+    networks:
+      - clickhouse_net
+      - proxy_app
+    stop_grace_period: 60s
+    deploy:
+      replicas: 1
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/clickhouse-app-log-error-monitor/data
+
+networks:
+  clickhouse_net:
+    external: true
+  proxy_app:
+    external: true

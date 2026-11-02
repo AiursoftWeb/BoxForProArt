@@ -448,9 +448,6 @@ find . -name 'docker-compose.yml' | while read file; do
   done
 done
 
-# The application log monitor runs as a non-root user and owns only its state directory.
-sudo install -d -o 1654 -g 1654 -m 0700 /swarm-vol/ssd/clickhouse-app-log-error-monitor/data
-
 #=============================
 # Docker Daemon Configuration
 #=============================

@@ -5,6 +5,7 @@ services:
     image: hub.aiursoft.com/aiursoft/clickhouse_app_log_error_monitor:latest
     environment:
       - NODE_NAME=proart
+      - CLICKHOUSE_PUBLIC_URL=https://clickhouse-proart.aiursoft.com
       - CLICKHOUSE_URL=http://clickhouse_clickhouse:8123
       - CLICKHOUSE_DATABASE=AspNetCoreLogs
       - CLICKHOUSE_USER=default

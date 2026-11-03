@@ -3,14 +3,23 @@
         <level>warning</level>
         <console>1</console>
     </logger>
-    <query_log remove="1"/>
+    <system_tables>
+        <ttl>event_time + INTERVAL 120 DAY DELETE</ttl>
+    </system_tables>
+    <!-- OpenTelemetry stores Unix microseconds instead of event_time. -->
+    <opentelemetry_span_log>
+        <ttl>toDateTime(intDiv(finish_time_us, 1000000)) + INTERVAL 120 DAY DELETE</ttl>
+    </opentelemetry_span_log>
+    <query_log/>
     <query_thread_log remove="1"/>
     <part_log remove="1"/>
     <trace_log remove="1"/>
     <metric_log remove="1"/>
     <asynchronous_metric_log remove="1"/>
-    <session_log remove="1"/>
-    <text_log remove="1"/>
+    <session_log/>
+    <text_log>
+        <level>warning</level>
+    </text_log>
     <core_dump>
         <size_limit>0</size_limit>
     </core_dump>

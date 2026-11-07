@@ -39,7 +39,7 @@ while true; do
         log "[$SVC] checking..."
 
         # Find the running frpc container for this service
-        CONTAINER_ID=$(docker ps --filter "name=${SVC}" --format "{{.ID}}" 2>/dev/null | head -1)
+        CONTAINER_ID=$(docker ps --filter "name=${SVC}" --format "{{.ID}}" 2>/dev/null | sed -n '1p')
         if [ -z "$CONTAINER_ID" ]; then
             log "[$SVC] WARN: no running container, skip"
             continue

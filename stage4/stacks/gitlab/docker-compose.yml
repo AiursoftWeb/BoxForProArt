@@ -220,6 +220,7 @@ services:
       - CHECK_INTERVAL_SECONDS=1800
       - HIGH_WATERMARK_BYTES=107374182400
       - LOW_WATERMARK_BYTES=85899345920
+    stop_grace_period: 60s
     deploy:
       mode: global
       resources:
@@ -228,6 +229,7 @@ services:
           memory: 512M
       update_config:
         order: stop-first
+        delay: 60s
 
   agent-bot:
     image: hub.aiursoft.com/aiursoft/agentbot:latest

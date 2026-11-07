@@ -318,6 +318,7 @@ internal_images=(
     "aiursoft/employeecenter:latest"
     "aiursoft/folderagent:latest"
     "aiursoft/musicexam:latest"
+    "aiursoft/shepherd-140fixed:latest"
     "aiursoft/tracer:latest"
     "aiursoft/wechatexam:latest"
 )

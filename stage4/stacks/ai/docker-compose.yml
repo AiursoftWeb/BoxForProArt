@@ -245,7 +245,7 @@ services:
           memory: 8G
       update_config:
         order: stop-first
-        delay: 5s
+        delay: 60s
       restart_policy:
         condition: any
         delay: 5s

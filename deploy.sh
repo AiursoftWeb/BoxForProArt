@@ -176,18 +176,20 @@ function ensure_nvidia_gpu() {
     fi
 
     ulimit -n 65535
-    valgrind /usr/bin/nvidia-smi -L 2> /dev/null | grep -q "GPU 0" || {
+    valgrind /usr/bin/nvidia-smi -L 2> /dev/null | grep "GPU 0" >/dev/null || {
         local doc_link=https://docs.anduinos.com/Applications/Development/Docker/Docker.html
         print_error "Please ensure you have Nvidia GPU. See $doc_link for more information."
         exit 1
     }
 
-    # ensure package: nvidia-container-toolkit and nvidia-docker2
-    apt list --installed | grep -q nvidia-container-toolkit || {
+    # Query the package state directly; do not parse apt's human-readable listing.
+    local toolkit_status
+    if ! toolkit_status=$(dpkg-query -W -f='${db:Status-Status}' nvidia-container-toolkit 2>/dev/null) ||
+        [ "$toolkit_status" != "installed" ]; then
         local doc_link=https://docs.anduinos.com/Applications/Development/Docker/Docker.html
-        print_error "Please install nvidia-container-toolkit and nvidia-docker2. See $doc_link for more information."
+        print_error "Please install nvidia-container-toolkit. See $doc_link for more information."
         exit 1
-    }
+    fi
 }
 
 better_performance() {
@@ -270,7 +272,7 @@ EOF
 
 function create_secret() {
     local secret_name=$1
-    if ! sudo docker secret ls --format '{{.Name}}' | grep -Fxq "$secret_name"; then
+    if ! sudo docker secret ls --format '{{.Name}}' | grep -Fx "$secret_name" >/dev/null; then
         local secret_value
         if [ -t 0 ]; then
           read -rs -p "Enter value for secret '$secret_name': " secret_value
@@ -288,7 +290,7 @@ function create_network() {
     network_name=$1
     subnet=$2
     known_networks=$(sudo docker network ls --format '{{.Name}}')
-    if ! echo "$known_networks" | grep -Fxq "$network_name"; then
+    if ! echo "$known_networks" | grep -Fx "$network_name" >/dev/null; then
         print_warn "Creating network $network_name with subnet $subnet and MTU 1400..."
         networkId=$(sudo docker network create \
             --driver overlay \
@@ -389,7 +391,7 @@ if [ "$TARGET_STAGE" -le 0 ]; then
 print_ok "Ensure packages needed are ready..."
 ensure_packages_needed_ready
 
-# Ensure has Nvidia GPU and have installed nvidia-container-toolkit and nvidia-docker2
+# Ensure has Nvidia GPU and have installed nvidia-container-toolkit
 print_ok "Ensure has Nvidia GPU and have installed..."
 if [ -f /usr/bin/nvidia-smi ]; then
     ensure_nvidia_gpu

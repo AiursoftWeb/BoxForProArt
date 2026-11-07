@@ -257,6 +257,8 @@ services:
       - ollama-gateway-app
     image: hub.aiursoft.com/ghcr.io/open-webui/open-webui:main
     environment:
+      # Existing installs also need Admin Settings > Documents > Max File Size set to 100.
+      - RAG_FILE_MAX_SIZE=100
       - 'OLLAMA_BASE_URL=http://ollama-gateway-app:5000/'
       - ENABLE_OPENAI_API=False
       - WEBUI_AUTH=True

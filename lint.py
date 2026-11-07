@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from decimal import Decimal
 import re
 import sys
 import yaml
@@ -184,7 +185,12 @@ def parse_duration_seconds(value) -> float | None:
     if not text:
         return None
 
-    matches = re.findall(r'(\d+(?:\.\d+)?)(h|ms|us|ns|m|s)', text)
+    if text in ('0', '+0'):
+        return 0.0
+    if text.startswith('+'):
+        text = text[1:]
+
+    matches = re.findall(r'(\d+(?:\.\d*)?|\.\d+)(h|ms|us|µs|μs|ns|m|s)', text)
     if not matches:
         return None
 
@@ -192,20 +198,25 @@ def parse_duration_seconds(value) -> float | None:
     if rebuilt != text:
         return None
 
-    total_seconds = 0.0
+    # Docker durations use signed 64-bit nanoseconds, including fractional units.
+    total_nanoseconds = 0
     unit_scale = {
-        'h': 3600,
-        'm': 60,
-        's': 1,
-        'ms': 1e-3,
-        'us': 1e-6,
-        'ns': 1e-9,
+        'h': 3_600_000_000_000,
+        'm': 60_000_000_000,
+        's': 1_000_000_000,
+        'ms': 1_000_000,
+        'us': 1_000,
+        'µs': 1_000,
+        'μs': 1_000,
+        'ns': 1,
     }
 
     for number, unit in matches:
-        total_seconds += float(number) * unit_scale[unit]
+        total_nanoseconds += int(Decimal(number) * unit_scale[unit])
+        if total_nanoseconds > (1 << 63) - 1:
+            return None
 
-    return total_seconds
+    return total_nanoseconds / 1_000_000_000
 
 
 def is_stateless(conf: dict) -> bool:
@@ -236,14 +247,19 @@ def validate_service(name: str, conf: dict):
     stateless = is_stateless(conf)
     upd = conf.get('deploy', {}).get('update_config', {})
 
+    # Omitted delays use Docker's default. Explicit values must be durations.
+    if 'delay' in upd:
+        delay = upd['delay']
+        seconds = parse_duration_seconds(delay)
+        if seconds is None or delay != delay.strip():
+            errors.append('deploy.update_config.delay must be a nonnegative duration')
+
     if stateless:
         # 无状态服务规范
         if conf.get('stop_grace_period') != '20s':
             errors.append("stop_grace_period 应为 '20s'")
         if upd.get('order') != 'start-first':
             errors.append("deploy.update_config.order 应为 'start-first'")
-        if upd.get('delay') != '5s':
-            errors.append("deploy.update_config.delay 应为 '5s'")
     else:
         # 有状态服务规范
         stop_grace_period = parse_duration_seconds(conf.get('stop_grace_period'))
@@ -251,8 +267,6 @@ def validate_service(name: str, conf: dict):
             errors.append("stop_grace_period 应大于等于 '60s'")
         if upd.get('order') != 'stop-first':
             errors.append("deploy.update_config.order 应为 'stop-first'")
-        if upd.get('delay') != '60s':
-            errors.append("deploy.update_config.delay 应为 '60s'")
         replicas = conf.get('deploy', {}).get('replicas')
         if replicas not in (None, 1):
             errors.append("deploy.replicas 应不存在或等于 1")

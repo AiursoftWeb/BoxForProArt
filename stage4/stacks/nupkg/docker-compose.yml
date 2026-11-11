@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  app:
+    depends_on:
+      - db
+    image: hub.aiursoft.com/aiursoft/nupkg:latest
+    volumes:
+      - nupkg-data:/data
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=nupkg;Uid=nupkg;Pwd=<nupkg_password>;
+      - ConnectionStrings__DbType=MySql
+      - Storage__Path=/data/files
+      - EnableLegacyApiKey=false
+      - AllowAnonymousPublishing=false
+      # Use the origin independently verified by S360; fetch approved archives on demand.
+      - Mirror__Enabled=true
+      - Mirror__Legacy=false
+      - Mirror__PackageSource=https://nuget.aiursoft.com/v3/index.json
+      - S360Mirror__Enabled=true
+      - S360Mirror__Server=https://s360.aiursoft.com
+      - S360Mirror__CheckKey={{NUPKG_S360_CHECK_KEY}}
+      - S360Mirror__PrefetchEnabled=false
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/nupkg
+      - AppSettings__OIDC__ClientId={{NUPKG_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{NUPKG_CLIENT_SECRET}}
+      - Logging__Clickhouse__Enabled=true
+      - Logging__Clickhouse__ConnectionString=Host=clickhouse;User=default;Password=123456;Database=AspNetCoreLogs
+      - Logging__Clickhouse__TableName=NupkgLogs
+    networks:
+      - proxy_app
+      - internal
+      - clickhouse_net
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      # Mirroring locks are per process; never overlap writers to the package store.
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+  db:
+    image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
+    volumes:
+      - nupkg-db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=nupkg
+      - MYSQL_USER=nupkg
+      - MYSQL_PASSWORD=<nupkg_password>
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  nupkg-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/nupkg-data/data
+  nupkg-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/nupkg-data/mysql
+
+networks:
+  proxy_app:
+    external: true
+  clickhouse_net:
+    external: true
+  internal:
+    driver: overlay

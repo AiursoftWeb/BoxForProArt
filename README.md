@@ -20,6 +20,8 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
 *   **Stage 3 (Infrastructure):**
     *   `zot`, `nuget`, `npm`: Private internal registries for development artifacts.
 *   **Stage 4 (Heavy Workloads):**
+    *   `nupkg`, `nopkg`: S360-admitted NuGet and npm registries, with on-demand caching,
+        direct home-network DNS and DNS-only public HTTPS through FRP.
     *   `s360`: Supply-chain dependency review at `https://s360.aiursoft.com`.
     *   `gitlab`: The full DevOps lifecycle platform.
     *   `clickhouse`: Analytics database.

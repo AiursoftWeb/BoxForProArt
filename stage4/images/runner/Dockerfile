@@ -167,8 +167,8 @@ RUN ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
 
 # .NET Global Tools
 RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
-    dotnet tool install JetBrains.ReSharper.GlobalTools --global --configfile ./temp.config -v d || echo 'JB already installed.' && \
-    dotnet tool install dotnet-reportgenerator-globaltool --global --configfile ./temp.config -v d || echo 'ReportGenerator already installed.' && \
+    dotnet tool install JetBrains.ReSharper.GlobalTools --version 2026.2.4.1 --global --configfile ./temp.config -v d || echo 'JB already installed.' && \
+    dotnet tool install dotnet-reportgenerator-globaltool --version 5.5.12 --global --configfile ./temp.config -v d || echo 'ReportGenerator already installed.' && \
     dotnet tool install aiursoft.apkg.client --global --configfile ./temp.config -v d || echo 'apkg already installed.' && \
     rm ./temp.config
 

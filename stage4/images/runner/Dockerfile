@@ -219,7 +219,7 @@ RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
 # preinstalled baseline also consumed by the derived worker image.
 RUN cp -a /root/.dotnet /home/gitlab-runner/ && \
     chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.dotnet && \
-    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/jb --version && \
+    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/jb inspectcode --version && \
     runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/reportgenerator -help && \
     runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/apkg --version
 

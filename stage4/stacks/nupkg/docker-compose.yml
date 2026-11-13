@@ -18,6 +18,7 @@ services:
       - Mirror__Legacy=false
       - Mirror__PackageSource=https://api.nuget.org/v3/index.json
       - S360Mirror__Enabled=true
+      - S360Mirror__PolicySource=https://nupkg.aiursoft.com/v3/index.json
       - S360Mirror__Server=https://s360.aiursoft.com
       - S360Mirror__CheckKey={{NUPKG_S360_CHECK_KEY}}
       - S360Mirror__PrefetchEnabled=false

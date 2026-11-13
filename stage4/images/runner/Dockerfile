@@ -165,11 +165,12 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 RUN ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
     dotnet --info
 
+# Pin JB and ReportGenerator; installation failures must fail the image build.
 # .NET Global Tools
-RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
-    dotnet tool install JetBrains.ReSharper.GlobalTools --version 2026.2.4.1 --global --configfile ./temp.config -v d || echo 'JB already installed.' && \
-    dotnet tool install dotnet-reportgenerator-globaltool --version 5.5.12 --global --configfile ./temp.config -v d || echo 'ReportGenerator already installed.' && \
-    dotnet tool install aiursoft.apkg.client --global --configfile ./temp.config -v d || echo 'apkg already installed.' && \
+RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nupkg.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
+    dotnet tool install JetBrains.ReSharper.GlobalTools --version 2026.3.0 --global --configfile ./temp.config -v d && \
+    dotnet tool install dotnet-reportgenerator-globaltool --version 5.5.12 --global --configfile ./temp.config -v d && \
+    dotnet tool install aiursoft.apkg.client --global --configfile ./temp.config -v d && \
     rm ./temp.config
 
 # Node.js Global Tools
@@ -213,6 +214,14 @@ RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
       gitlab-runner; \
     install -d -m 0700 /etc/gitlab-runner; \
     gitlab-runner --version
+
+# Shell-executor jobs use this account. Seed its global tools from the same
+# preinstalled baseline also consumed by the derived worker image.
+RUN cp -a /root/.dotnet /home/gitlab-runner/ && \
+    chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.dotnet && \
+    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/jb inspectcode --version && \
+    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/reportgenerator -help && \
+    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/apkg --version
 
 # Install the one canonical Rust toolchain used by shell-executor jobs. The
 # setup script also cross-links an AArch64 binary, so a broken image fails here.

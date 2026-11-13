@@ -16,8 +16,13 @@ services:
       - GlobalSettings__AlertCenter_Endpoint=https://alertcenter.aiursoft.com
       - GlobalSettings__AlertCenter_ApiKey={{S360_ALERTCENTER_API_KEY}}
       - GlobalSettings__AlertCenter_PublicBaseUrl=https://s360.aiursoft.com
+      # Legacy clients remain supported until their per-project migration completes.
       - SupplyChain__NuGetSources__0=https://nuget.aiursoft.com/v3/index.json
+      - SupplyChain__NuGetSources__1=https://nupkg.aiursoft.com/v3/index.json
+      - SupplyChain__NuGetSources__2=https://api.nuget.org/v3/index.json
       - SupplyChain__NpmSources__0=https://npm.aiursoft.com
+      - SupplyChain__NpmSources__1=https://nopkg.aiursoft.com/npm/
+      - SupplyChain__NpmSources__2=https://registry.npmjs.org/
       - AppSettings__DefaultRole=Employees
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/s360

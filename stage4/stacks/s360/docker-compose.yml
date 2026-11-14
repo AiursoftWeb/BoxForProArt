@@ -26,6 +26,7 @@ services:
       - SupplyChain__Mirrors__0__Ecosystem=nuget
       - SupplyChain__Mirrors__0__Source=https://nupkg.aiursoft.com/v3/index.json
       - SupplyChain__Mirrors__0__Upstream=https://api.nuget.org/v3/index.json
+      - SupplyChain__Mirrors__0__OriginEndpoint=https://nupkg.aiursoft.com/api/package-origins
       - AppSettings__DefaultRole=Employees
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/s360

@@ -35,8 +35,10 @@ services:
       - proxy_app
       - internal
       - clickhouse_net
-    stop_grace_period: 20s
+    stop_grace_period: 60s
     deploy:
+      # Schema migrations must not overlap with a process using the previous schema.
+      replicas: 1
       labels:
         shepherd.autoupdate: "true"
       resources:
@@ -44,7 +46,7 @@ services:
           cpus: '4.0'
           memory: 4G
       update_config:
-        order: start-first
+        order: stop-first
         delay: 5s
 
   db:

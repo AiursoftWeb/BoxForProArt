@@ -11,10 +11,11 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=nopkg;Uid=nopkg;Pwd={{NOPKG_DB_PASSWORD}};
       - ConnectionStrings__DbType=MySql
       - Storage__Path=/data/files
-      - Registry__Upstream=https://npm.aiursoft.com
+      - Registry__Upstream=https://registry.npmjs.org
       - Registry__StoragePath=/data/npm
       - Registry__CacheOnly=false
       - Registry__S360__Enabled=true
+      - Registry__S360__PolicySource=https://nopkg.aiursoft.com/npm
       - Registry__S360__Server=https://s360.aiursoft.com
       - Registry__S360__CheckKey={{NOPKG_S360_CHECK_KEY}}
       - AppSettings__AuthProvider=OIDC

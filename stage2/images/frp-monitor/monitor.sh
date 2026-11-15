@@ -67,8 +67,8 @@ while true; do
         log "[$SVC] unrecovered deadline count: $MATCH_COUNT / $TAIL_LINES"
 
         if [ "$MATCH_COUNT" -ge "$THRESHOLD" ]; then
-            # Use the client's existing local admin API; do not infer health from logs alone.
-            if ! STATUS=$(timeout 10s docker exec "$CONTAINER_ID" frpc status \
+            # Query the local admin API directly, even when the client has proxy variables.
+            if ! STATUS=$(timeout 10s docker exec -e "NO_PROXY=*" -e "no_proxy=*" "$CONTAINER_ID" frpc status \
                 -c /etc/frp/frpc.toml --api-timeout 5s 2>/dev/null); then
                 log "[$SVC] WARN: cannot query proxy status, no action"
                 continue

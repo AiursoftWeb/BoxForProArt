@@ -109,8 +109,26 @@ else:
         self.assertIn("cn.test/aiursoft/wechatexam:latest", {a[3] for a in copies})
         self.assertNotIn("cn.test/aiursoft/dms:latest", {a[3] for a in copies})
 
+    def test_omitted_image_forces_the_entire_configured_inventory(self):
+        digest = "sha256:" + "a" * 64
+        (self.records / "aiursoft__wechatexam_latest").write_text(f"{int(time.time())} {digest}\n")
+        (self.root / "state.json").write_text(json.dumps({"cn.test/aiursoft/wechatexam:latest": digest}))
+        result = self.run_script("force-update.sh")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        sources = {a[2] for a in self.calls() if a[:2] == ["image", "digest"] and a[2].startswith("home.test/")}
+        self.assertEqual(len(sources), 15)
+        self.assertIn("home.test/aiursoft/wechatexam:latest", sources)
+        self.assertIn("all configured images", result.stdout)
+
+    def test_all_images_request_uses_the_same_cron_lock(self):
+        with (self.records / "puller_cn.lock").open("w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = self.run_script("force-update.sh")
+            self.assertEqual(result.returncode, 75)
+            self.assertEqual(self.calls(), [])
+
     def test_invalid_arguments_never_login_or_create_records(self):
-        for args in [(), ("a", "b"), ("--help",), ("aiursoft/dms;id",), ("aiursoft/*",), ("a" * 256,)]:
+        for args in [("",), ("a", "b"), ("--help",), ("aiursoft/dms;id",), ("aiursoft/*",), ("a" * 256,)]:
             with self.subTest(args=args):
                 self.assertEqual(self.run_script("force-update.sh", *args).returncode, 78)
                 self.assertEqual(self.calls(), [])

@@ -90,3 +90,23 @@ GitLab issues still follow the planning and human approval workflow before
 implementation. This configuration applies to AgentBot; the separate Happier
 worker retains its native Codex setup described in
 [Worker setup and recovery](stage4/stacks/happier/WORKER.md).
+
+## Approved CN Puller updates through DMS
+
+After deploying the updated CN Puller and enrolling this Box's DMS Agent, use
+`dms machine box puller force-update --puller cn --image aiursoft/dms:latest`
+with the usual cluster, machine and reason options. The High-risk Lockbox freezes
+both the selected Puller and the image before approval. `--puller main` selects
+the independent primary Puller.
+
+CN's `/app/force-update.sh IMAGE` accepts one concrete image, shares cron's
+persistent `puller_cn.lock`, and bypasses the quiet period for that invocation.
+It calls the same digest-pinned, verified mirror logic as the scheduled job.
+Without arguments, `entry.sh` retains its full scheduled inventory; with image
+arguments it replaces that inventory with the explicit list. No cron, registry
+credential or mirror configuration changes are required. Success means the
+mirror is current; application deployment is checked separately.
+
+Run the isolated CN tests with `python3 -m unittest discover -s tests -v`.
+They execute the real scripts with a local registry-client substitute and need
+neither Docker nor registry credentials/network access.

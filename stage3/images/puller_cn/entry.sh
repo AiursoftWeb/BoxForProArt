@@ -331,6 +331,15 @@ for image in "${internal_images[@]}"; do
     image_specs+=("${INTERNAL_CHECK_INTERVAL_SECONDS}|${image}")
 done
 
+# An explicit image list replaces the scheduled inventory. DMS force-update.sh
+# supplies exactly one image and disables the quiet period for that invocation.
+if [ "$#" -gt 0 ]; then
+    image_specs=()
+    for image in "$@"; do
+        image_specs+=("${PUBLIC_CHECK_INTERVAL_SECONDS}|${image}")
+    done
+fi
+
 # Use one sequential worker to protect the constrained home-to-China uplink.
 # Shuffling prevents a repeatedly failing large image from always being first.
 mapfile -t shuffled_specs < <(printf '%s\n' "${image_specs[@]}" | shuf)
@@ -353,5 +362,5 @@ if [ "${#failed_images[@]}" -gt 0 ]; then
 fi
 
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-log_success "${BOLD}All required BoxForChina images are synchronized${NC}"
+log_success "${BOLD}All selected BoxForChina images are synchronized${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"

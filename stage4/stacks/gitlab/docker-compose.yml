@@ -148,9 +148,12 @@ services:
       - DOCKERHUB_PASSWORD={{DOCKERHUB_PASSWORD}}
       - CN_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
       - CN_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
-      - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
+      - NUPKG_API_KEY={{NUPKG_API_KEY}}
+      - NOPKG_API_KEY={{NOPKG_API_KEY}}
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - NPM_TOKEN={{NPM_TOKEN}}
+      # Keep legacy publishing working until its remaining pipelines migrate.
+      - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com
@@ -191,9 +194,12 @@ services:
       - DOCKERHUB_PASSWORD={{DOCKERHUB_PASSWORD}}
       - CN_DOCKER_USERNAME={{CN_DOCKER_USERNAME}}
       - CN_DOCKER_PASSWORD={{CN_DOCKER_PASSWORD}}
-      - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
+      - NUPKG_API_KEY={{NUPKG_API_KEY}}
+      - NOPKG_API_KEY={{NOPKG_API_KEY}}
       - NUGET_API_KEY={{NUGET_API_KEY}}
       - NPM_TOKEN={{NPM_TOKEN}}
+      # Keep legacy publishing working until its remaining pipelines migrate.
+      - LOCAL_NUGET_API_KEY={{LOCAL_NUGET_PUBLISH_KEY}}
       - APKG_DEV_API_KEY={{APKG_DEV_API_KEY}}
       - APKG_PROD_API_KEY={{APKG_PROD_API_KEY}}
       - S360_SERVER=https://s360.aiursoft.com

@@ -145,9 +145,11 @@ gitlab-runner register \
     --env "LOCAL_DOCKER_PASSWORD=${DOCKERHUB_PASSWORD}" \
     --env "CN_DOCKER_USERNAME=${CN_DOCKER_USERNAME}" \
     --env "CN_DOCKER_PASSWORD=${CN_DOCKER_PASSWORD}" \
-    --env "LOCAL_NUGET_API_KEY=${LOCAL_NUGET_API_KEY}" \
+    --env "NUPKG_API_KEY=${NUPKG_API_KEY}" \
+    --env "NOPKG_API_KEY=${NOPKG_API_KEY}" \
     --env "NUGET_API_KEY=${NUGET_API_KEY}" \
-    --env "NPM_TOKEN=${NPM_TOKEN:-}" \
+    --env "NPM_TOKEN=${NPM_TOKEN}" \
+    --env "LOCAL_NUGET_API_KEY=${LOCAL_NUGET_API_KEY}" \
     --env "APKG_DEV_API_KEY=${APKG_DEV_API_KEY}" \
     --env "APKG_PROD_API_KEY=${APKG_PROD_API_KEY}" \
     --env "S360_SERVER=${S360_SERVER}" \

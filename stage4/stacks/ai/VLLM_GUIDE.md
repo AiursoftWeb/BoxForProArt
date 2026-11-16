@@ -7,7 +7,8 @@ serving `bge-m3`; IndexTTS continues sharing GPU 0.
 The vLLM endpoint is internal: `http://vllm-server:8000/v1`, model
 `home-chat`. It has no published host port. Configure the existing
 OllamaGateway as an OpenAI-compatible provider to expose it through the
-existing authenticated gateway and Open WebUI.
+existing authenticated gateway and Open WebUI. Its provider Base URL must
+be `http://vllm-server:8000` without `/v1`: OllamaGateway adds `/v1` itself.
 
 ## Prepare model files
 
@@ -59,7 +60,7 @@ resident by both Ollama and gateway warmup requests.
    Keep its weight files available until the new service passes acceptance.
 5. Deploy the reviewed AI stack through the existing Box deployment process.
    Wait for vLLM health, then configure the OpenAI-compatible provider at
-   `http://vllm-server:8000/v1` with maximum parallelism 1, chat-completions
+   `http://vllm-server:8000` with maximum parallelism 1, chat-completions
    support, and model `home-chat`. Preserve existing public virtual-model
    names when switching their local chat routes.
 6. Verify direct inference, gateway streaming and cancellation, Open WebUI

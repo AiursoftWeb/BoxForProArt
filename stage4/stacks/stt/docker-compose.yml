@@ -34,6 +34,11 @@ services:
       - WHISPERX_MODEL=large-v3
       - WHISPERX_DEVICE=cuda
       - WHISPERX_COMPUTE_TYPE=float16
+      # Keep the configured ASR model resident on host GPU 0.
+      - WHISPERX_PRELOAD=true
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
     networks:
       - internal
     stop_grace_period: 60s

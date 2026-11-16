@@ -29,7 +29,7 @@ services:
       - '1'
       - --max-num-batched-tokens
       - '1024'
-      # bge-m3 uses GPU 0; IndexTTS uses GPU 1. Bound KV for one 16K request.
+      # bge-m3 and IndexTTS use GPU 1; GPU 0 is available for ASR.
       - --gpu-memory-utilization
       - '0.76'
       - --kv-cache-memory-bytes
@@ -110,8 +110,8 @@ services:
         ln -sf /usr/lib/ollama/cuda_v13/libcublasLt.so.13.1.1.3 /usr/lib/ollama/libcublasLt.so.13.1.1.3
         exec /bin/ollama serve
     environment:
-      # Keep embeddings on GPU 0 while vLLM shares both devices.
-      - NVIDIA_VISIBLE_DEVICES=0
+      # Share GPU 1 with IndexTTS while vLLM uses both devices.
+      - NVIDIA_VISIBLE_DEVICES=1
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
     # - OLLAMA_NUM_CTX=32768      # ❌ 必须删掉这行！否则向量模型也会默认去申请 32K，导致显存规划错乱。

@@ -108,7 +108,16 @@ visible with `NVIDIA_VISIBLE_DEVICES=0,1`. Ollama and IndexTTS expose only
 host GPU 1. Each single-GPU container selects its logical CUDA device 0.
 This groups embeddings and speech synthesis on GPU 1. The STT stack exposes
 only host GPU 0 and enables `WHISPERX_PRELOAD=true`, loading the configured
-ASR model before it becomes healthy. vLLM shards equally across both cards. Ollama defaults to a 4,096-token
+ASR model before it becomes healthy. vLLM shards equally across both cards.
+
+![Measured GPU allocation on 2026-11-16](docs/gpu-allocation-2026-11-16.png)
+
+This diagram records one post-inference snapshot from the 2026-11-16
+coexistence test, not live telemetry. The full test's minimum free memory
+was 619 MiB on GPU 0 and 210 MiB on GPU 1; those minima are marked separately
+from the snapshot areas. The [editable SVG](docs/gpu-allocation-2026-11-16.svg)
+and [source values](docs/gpu-allocation-2026-11-16.json) are kept alongside
+this image. Ollama defaults to a 4,096-token
 context for bge-m3 through `OLLAMA_CONTEXT_LENGTH`. This is an input-length
 limit, not a guarantee of lower resident memory. The vLLM image, precision,
 and 16K chat context remain unchanged.

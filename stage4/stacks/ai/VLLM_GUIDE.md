@@ -15,6 +15,14 @@ The target is gated on Hugging Face. An operator must accept its access
 conditions using an account permitted to download the weights. Do not place
 that account's token in Compose, `.env.prod`, source control, or chat.
 
+Open the [target repository](https://huggingface.co/orcarouter/Qwen3.8-27B-Uncensored-FP8)
+in a browser using the same account that will log into the CLI. Review and
+submit the access form, then confirm access has been granted before downloading.
+A successful `hf auth login` authenticates the account; it does not accept the
+repository's conditions. If downloading reports `requires approval`, complete
+this browser step instead of repeatedly logging in. If the request is pending,
+wait for the repository owner to grant access.
+
 After preparing the official vLLM image through the existing registry,
 run the following **on Proart**. It downloads weights without starting GPU
 inference or stopping the existing model:

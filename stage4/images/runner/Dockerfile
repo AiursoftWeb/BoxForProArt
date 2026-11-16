@@ -215,13 +215,11 @@ RUN --mount=type=cache,target=/var/cache/gitlab-runner-downloads \
     install -d -m 0700 /etc/gitlab-runner; \
     gitlab-runner --version
 
-# Shell-executor jobs use this account. Seed its global tools from the same
-# preinstalled baseline also consumed by the derived worker image.
-RUN cp -a /root/.dotnet /home/gitlab-runner/ && \
-    chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.dotnet && \
-    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/jb inspectcode --version && \
-    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/reportgenerator -help && \
-    runuser --user gitlab-runner -- /home/gitlab-runner/.dotnet/tools/apkg --version
+# Validate the baseline shared with the derived worker image. The shell runner
+# copies it at startup so tool updates can rename directories in a writable layer.
+RUN /root/.dotnet/tools/jb inspectcode --version && \
+    /root/.dotnet/tools/reportgenerator -help && \
+    /root/.dotnet/tools/apkg --version
 
 # Install the one canonical Rust toolchain used by shell-executor jobs. The
 # setup script also cross-links an AArch64 binary, so a broken image fails here.

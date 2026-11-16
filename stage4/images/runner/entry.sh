@@ -3,6 +3,14 @@ set -e
 
 echo "Starting GitLab Runner registration script..."
 
+# Initialize global tools once per container, outside the read-only image layer.
+# Keep updates made by jobs when this container restarts.
+if [ ! -d /home/gitlab-runner/.dotnet/tools ]; then
+    mkdir -p /home/gitlab-runner/.dotnet
+    cp -a /root/.dotnet/. /home/gitlab-runner/.dotnet/
+    chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.dotnet
+fi
+
 # Validate access without changing the host-owned Docker socket.
 if [ -S /var/run/docker.sock ]; then
     echo "Docker socket found, validating runner access..."

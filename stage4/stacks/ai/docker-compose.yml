@@ -118,6 +118,7 @@ services:
       - OLLAMA_MAX_LOADED_MODELS=2  # ✅ 新增这行！明确告诉 Ollama 的调度器：我有钱，请允许同时把 2 个模型常驻在显存里，不要互相踢。
       - OLLAMA_NUM_BATCH=2048
       - OLLAMA_SCHED_SPREAD=0
+      - OLLAMA_CONTEXT_LENGTH=4096 # This Ollama instance serves bge-m3.
       - OLLAMA_KV_CACHE_TYPE=q8_0
       - OLLAMA_FLASH_ATTENTION=1
       - OLLAMA_HOST=0.0.0.0

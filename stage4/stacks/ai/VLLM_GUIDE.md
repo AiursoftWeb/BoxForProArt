@@ -106,8 +106,10 @@ The node uses the NVIDIA default container runtime. vLLM makes both GPUs
 visible with `NVIDIA_VISIBLE_DEVICES=0,1`. Ollama exposes only host GPU 0;
 IndexTTS exposes only host GPU 1. Each single-GPU container selects its logical
 CUDA device 0. This separates the embedding and speech workloads while vLLM
-continues sharding equally across both cards. The image and model settings
-remain unchanged.
+continues sharding equally across both cards. Ollama defaults to a 4,096-token
+context for bge-m3 through `OLLAMA_CONTEXT_LENGTH`. This is an input-length
+limit, not a guarantee of lower resident memory. The vLLM image, precision,
+and 16K chat context remain unchanged.
 
 Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to these shared
 services: Swarm reserves whole devices rather than remaining VRAM. Use the

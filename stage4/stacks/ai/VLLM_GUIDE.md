@@ -2,7 +2,7 @@
 
 The AI stack serves text and single-image chat with `orcarouter/Qwen3.8-27B-Uncensored-FP8`
 and the `z-lab/Qwen3.8-27B-DFlash2` speculative draft. Ollama continues
-serving `bge-m3`; IndexTTS continues sharing GPU 0.
+serving `bge-m3` on GPU 0; IndexTTS shares GPU 1.
 
 The vLLM endpoint is internal: `http://vllm-server:8000/v1`, model
 `home-chat`. It has no published host port. Configure the existing
@@ -103,11 +103,16 @@ resident by both Ollama and gateway warmup requests.
    chat, and unchanged embedding and speech services before restoring traffic.
 
 The node uses the NVIDIA default container runtime. vLLM makes both GPUs
-visible with `NVIDIA_VISIBLE_DEVICES=0,1` and shares them with Ollama and
-IndexTTS. Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to
-vLLM: Ollama already reserves the advertised devices, and Swarm schedules
-whole resource units rather than remaining VRAM. Such a reservation leaves
-the vLLM task pending even when enough VRAM is available.
+visible with `NVIDIA_VISIBLE_DEVICES=0,1`. Ollama exposes only host GPU 0;
+IndexTTS exposes only host GPU 1. Each single-GPU container selects its logical
+CUDA device 0. This separates the embedding and speech workloads while vLLM
+continues sharding equally across both cards. The image and model settings
+remain unchanged.
+
+Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to these shared
+services: Swarm reserves whole devices rather than remaining VRAM. Use the
+NVIDIA runtime visibility variables to select devices. A reservation value
+is a quantity, not a physical GPU index.
 
 vLLM uses two RTX 3090 GPUs with tensor parallelism 2. Its KV pool is explicitly
 limited to 960 MiB per GPU for one 16K request. The 76% GPU utilization setting

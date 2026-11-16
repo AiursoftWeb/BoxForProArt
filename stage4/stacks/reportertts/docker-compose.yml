@@ -6,6 +6,10 @@ services:
     volumes:
       - reportertts-data:/data
     environment:
+      # The NVIDIA runtime exposes host GPU 1 as this container's CUDA device 0.
+      - NVIDIA_VISIBLE_DEVICES=1
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
       - TTS_ACCESS_TOKEN={{TTS_ACCESS_TOKEN}}
     networks:
       - proxy_app

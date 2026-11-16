@@ -1,81 +1,108 @@
-# vLLM 部署与调优实战指南 (MoE 架构优化版)
+# vLLM chat on Proart
 
-本指南针对 `Qwen3.5-35B-A3B` 这种 **MoE (Mixture of Experts)** 架构，在双卡 RTX 3090 (48GB) 非对称显存环境下的极限部署提供 SOP。
+The AI stack serves text chat with `orcarouter/Qwen3.8-27B-Uncensored-FP8`
+and the `z-lab/Qwen3.8-27B-DFlash2` speculative draft. Ollama continues
+serving `bge-m3`; IndexTTS continues sharing GPU 0.
 
----
+The vLLM endpoint is internal: `http://vllm-server:8000/v1`, model
+`home-chat`. It has no published host port. Configure the existing
+OllamaGateway as an OpenAI-compatible provider to expose it through the
+existing authenticated gateway and Open WebUI.
 
-## 1. 核心纠错：MoE 架构的显存真相
-*   **权重体积**：35B 的 **AWQ (4-bit)** 量化版本权重约 **18GB**。
-*   **KV Cache 特性**：由于是 `A3B`（激活 3B），其 KV 缓存需求极小。
-    *   **32K 上下文** 仅占用约 **2.68GB**。
-    *   **结论**：在剩余 28GB 的对称可用空间内，**完全不需要压缩 KV 缓存**，可以直接跑满 **32K 上下文**，且保持原生 FP16/BF16 精度以确保输出质量。
+## Prepare model files
 
----
+The target is gated on Hugging Face. An operator must accept its access
+conditions using an account permitted to download the weights. Do not place
+that account's token in Compose, `.env.prod`, source control, or chat.
 
-## 2. 明日实战：双卡 RTX 3090 (48GB) 极限部署策略
-
-### 2.1 业务约束与显存精算
-*   **约束**：GPU 0 已被 RAG/TTS 占用 10GB（剩余 14GB）。
-*   **对称死锁**：vLLM 张量并行 (`--tensor-parallel-size 2`) 强制镜像。
-*   **可用池**：$14\text{GB} \times 2 = 28\text{GB}$。
-*   **分配比例**：$28\text{GB} / 48\text{GB} \approx 0.58$。为留出系统 Buffer，建议设为 **0.56**。
-
-### 2.2 部署命令 (针对最佳性能的 AWQ 格式)
-**推荐方案**：下载 `Qwen/Qwen3.5-35B-A3B-Instruct-AWQ` 以获得 vLLM 原生硬件加速。
+After preparing the official vLLM image through the existing registry,
+run the following **on Proart**. It downloads weights without starting GPU
+inference or stopping the existing model:
 
 ```bash
-sudo docker run -d --name vllm-35b-moe \
-  --restart always \
-  --gpus all \
-  --ipc=host \
-  -v /swarm-vol/ssd/ai/vllm/root:/root/.cache/huggingface \
-  -p 8000:8000 \
-  -e HF_ENDPOINT=https://hf-mirror.com \
+sudo mkdir -p /swarm-vol/ssd/ai/vllm/huggingface-hub
+sudo docker run --rm -it \
+  --entrypoint /bin/bash \
+  -v /swarm-vol/ssd/ai/vllm/huggingface-hub:/root/.cache/huggingface/hub \
   hub.aiursoft.com/vllm/vllm-openai:latest \
-  Qwen/Qwen3.5-35B-A3B-Instruct-AWQ \
-  --tensor-parallel-size 2 \
-  --max-model-len 32768 \
-  --gpu-memory-utilization 0.56 \
-  --enforce-eager \
-  --trust-remote-code \
-  --enable-prefix-caching
+  -lc 'hf auth login && hf download orcarouter/Qwen3.8-27B-Uncensored-FP8 && hf download z-lab/Qwen3.8-27B-DFlash2'
 ```
 
-### 2.3 备选方案：部署 GGUF 格式 (Q4_0/Q4_K_M)
-如果手里只有 GGUF 文件，需指定模型文件路径：
+Only the model cache is mounted. Login credentials remain inside the temporary
+container and are removed with it after exit; do not enable Git credential
+storage at the login prompt. Interrupted downloads can resume by repeating
+the command. Serving mounts only the model cache read-only and enables
+`HF_HUB_OFFLINE=1`, so no Hugging Face token is needed at runtime. The
+persistent vLLM compilation cache is separate.
 
-```bash
-# 假设模型文件在 /root/.cache/huggingface/qwen35.gguf
-sudo docker run -d --name vllm-35b-gguf \
-  --restart always \
-  --gpus all \
-  --ipc=host \
-  -v /swarm-vol/ssd/ai/vllm/root:/root/.cache/huggingface \
-  -p 8000:8000 \
-  hub.aiursoft.com/vllm/vllm-openai:latest \
-  --model /root/.cache/huggingface/qwen35.gguf \
-  --tokenizer Qwen/Qwen3.5-35B-A3B-Instruct \
-  --tensor-parallel-size 2 \
-  --max-model-len 32768 \
-  --gpu-memory-utilization 0.56 \
-  --enforce-eager
-```
+## Switch from Ollama chat
 
-### 2.4 参数深度解析
-1.  **`--ipc=host`**：彻底解决多卡并行时 NCCL 库在容器内共享内存不足导致的崩溃，比手动指定 `shm-size` 更稳。
-2.  **`--max-model-len 32768`**：MoE 架构福利。即便显存剩余不多，也能从容处理 32K 文本，无需阉割。
-3.  **取消 `--kv-cache-dtype fp8`**：显存绰绰有余（约 8GB 空闲），不开启 FP8 压缩以保留最高推理精度。
-4.  **`--gpu-memory-utilization 0.56`**：精准避让 GPU 0 上预留给 RAG/TTS 的 10GB 空间。
+Do not start both chat models together. The existing Qwen runner is kept
+resident by both Ollama and gateway warmup requests.
 
----
+1. Record the current gateway provider, warmup entries, and virtual-model
+   routes using the normal administrator interface. Preserve any required
+   rollback configuration using the established backup procedure.
+2. Remove only `qwen3.8:27b` from Ollama provider warmup. Keep the `bge-m3`
+   embedding warmup and all unrelated providers and routes.
+3. Drain active requests to the old local chat backend and temporarily
+   disable its routes. Confirm no warmup or new chat request can reload it.
+4. Stop `qwen3.8:27b` through Ollama and verify that it has left `ollama ps`.
+   Keep its weight files available until the new service passes acceptance.
+5. Deploy the reviewed AI stack through the existing Box deployment process.
+   Wait for vLLM health, then configure the OpenAI-compatible provider at
+   `http://vllm-server:8000/v1` with maximum parallelism 1, chat-completions
+   support, and model `home-chat`. Preserve existing public virtual-model
+   names when switching their local chat routes.
+6. Verify direct inference, gateway streaming and cancellation, Open WebUI
+   chat, and unchanged embedding and speech services before restoring traffic.
 
-## 3. 架构预警：何时该切回 Ollama？
+vLLM uses two RTX 3090 GPUs with tensor parallelism 2. The initial per-card
+budget is 80% of 24 GiB (19.2 GiB), leaving room for embedding, speech, and
+runtime overhead. It is a starting budget, not a measured peak guarantee.
+Do not copy a 90% dedicated-GPU setting onto this shared machine.
 
-*   **场景**：如果需要处理 **128K 以上** 的超长上下文，或者 GPU 0 的预留空间进一步被挤压到不足 12GB。
-*   **策略**：切回 Ollama 开启 **非对称分层**。Ollama 能把两张卡剩下的显存拼凑在一起使用（14GB + 24GB = 38GB），而 vLLM 只能浪费掉那 10GB 的差异。
+## Precision and latency
 
----
+FP8 weights run through the Ampere-compatible W8A16 Marlin path. Verify the
+selected kernels in startup logs. Activations and attention KV use BF16;
+GDN SSM state uses FP32. The draft is the unquantized BF16 checkpoint.
+The target checkpoint determines weight quantization automatically.
 
-## 4. 4090 (24GB) 单卡经验
-*   **9B BF16**：完美运行。
-*   **35B AWQ**：单卡极其吃力，建议仅在双卡环境下使用张量并行部署。
+The total context limit is 16,384 tokens, including input, reasoning, and
+visible output. One request runs at a time. DFlash2 proposes seven tokens per
+step with standard rejection sampling; it preserves the deployed target's
+sampling distribution rather than the original unmodified BF16 model.
+Modified weights can reduce draft acceptance, which requires measurement.
+Do not use approximate verification to improve speed.
+
+Start with medium reasoning for ordinary chat; compare xhigh for difficult
+questions. Track both the first reasoning token and the first visible answer:
+long reasoning can exhaust a 16K budget before producing an answer.
+
+Prefix caching is initially disabled to establish a baseline. Enable it only
+after testing repeat-prefix correctness with this hybrid model and DFlash2.
+Keep NVLink peer communication enabled; do not set `NCCL_P2P_DISABLE=1`.
+
+## Acceptance and rollback
+
+Record image/model revisions as deployment evidence without pinning source
+configuration to an upstream hash. Check:
+
+- Both GPUs participate, the intended FP8/Marlin path is selected, and there
+  is headroom during chat, embedding, and speech running together.
+- Chinese multi-turn chat, factual uncertainty, reasoning, formatting, and
+  benign sensitive-topic discussions complete without regressions against
+  the previous model. Lower refusal alone does not establish answer quality.
+- DFlash2-on versus target-only latency, acceptance length, completion rate,
+  and streaming work at short and near-limit contexts. Do not treat advertised
+  sibling-model token rates as this deployment's measured performance.
+- `/health` and `/v1/models`, gateway model discovery, nonstreaming and SSE,
+  cancellation, queueing, over-limit rejection, and service restart work.
+- `bge-m3` still returns 1,024-dimensional embeddings and the old Qwen does
+  not reappear after a gateway warmup cycle. Speech still works.
+
+If acceptance fails, stop the vLLM service before re-enabling the previous
+Qwen route and warmup configuration. Reload the retained Ollama weights and
+verify chat and embeddings. Do not restore the old chat model while vLLM
+still occupies the GPUs.

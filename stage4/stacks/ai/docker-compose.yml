@@ -1,6 +1,90 @@
 version: '3.9'
 
 services:
+  vllm-server:
+    image: hub.aiursoft.com/vllm/vllm-openai:latest
+    entrypoint: ["vllm", "serve"]
+    command:
+      - orcarouter/Qwen3.8-27B-Uncensored-FP8
+      - --served-model-name
+      - home-chat
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8000'
+      - --tensor-parallel-size
+      - '2'
+      - --dtype
+      - bfloat16
+      - --language-model-only
+      - --max-model-len
+      - '16384'
+      - --max-num-seqs
+      - '1'
+      - --max-num-batched-tokens
+      - '4096'
+      # GPU 0 also serves bge-m3 and IndexTTS. Leave headroom on both cards.
+      - --gpu-memory-utilization
+      - '0.80'
+      - --kv-cache-dtype
+      - bfloat16
+      - --mamba-ssm-cache-dtype
+      - float32
+      - --disable-prefix-caching
+      - --reasoning-parser
+      - qwen3
+      - --speculative-config
+      - '{"method":"dflash","model":"z-lab/Qwen3.8-27B-DFlash2","num_speculative_tokens":7,"draft_tensor_parallel_size":2,"rejection_sample_method":"standard"}'
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0,1
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Download gated weights separately; the serving container receives no HF token.
+      - HF_HUB_OFFLINE=1
+      - VLLM_NO_USAGE_STATS=1
+    volumes:
+      - vllm-models:/root/.cache/huggingface/hub:ro
+      - vllm-cache:/root/.cache/vllm
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 8589934592
+    networks:
+      - internal
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).close()"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30m
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 64G
+        reservations:
+          generic_resources:
+            - discrete_resource_spec:
+                kind: "NVIDIA-GPU"
+                value: 0
+            - discrete_resource_spec:
+                kind: "NVIDIA-GPU"
+                value: 1
+      update_config:
+        order: stop-first
+        delay: 60s
+      restart_policy:
+        condition: any
+        delay: 30s
+        max_attempts: 3
+
   ollama-server:
     image: hub.aiursoft.com/ollama/ollama:latest
     volumes:
@@ -327,6 +411,18 @@ networks:
     driver: overlay
 
 volumes:
+  vllm-models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/ai/vllm/huggingface-hub
+  vllm-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/ai/vllm/cache
   ollama-data:
     driver: local
     driver_opts:

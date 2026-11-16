@@ -84,9 +84,12 @@ sampling distribution rather than the original unmodified BF16 model.
 Modified weights can reduce draft acceptance, which requires measurement.
 Do not use approximate verification to improve speed.
 
-Start with medium reasoning for ordinary chat; compare xhigh for difficult
-questions. Track both the first reasoning token and the first visible answer:
-long reasoning can exhaust a 16K budget before producing an answer.
+Preserve the checkpoint's default xhigh reasoning for quality-first chat.
+Callers can explicitly request medium or low, but lowering reasoning effort
+is a quality/latency tradeoff, not lossless acceleration. Track both the first
+reasoning token and the first visible answer: long reasoning can exhaust a
+16K budget before producing an answer. Compare models with the same explicit
+effort when evaluating them, and also test the default effort separately.
 
 Prefix caching is initially disabled to establish a baseline. Enable it only
 after testing repeat-prefix correctness with this hybrid model and DFlash2.

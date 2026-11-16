@@ -28,7 +28,8 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
     *   `nextcloud`: File storage and collaboration (20TB pool).
     *   `ocr`: PaddleOCR API service (optimized for CPU).
     *   `jellyfin`: Media streaming.
-    *   `ai`: LLM and Stable Diffusion inference services (leveraging the GPUs).
+    *   `ai`: vLLM chat with DFlash2 and Ollama embeddings (leveraging the GPUs).
+        See [AI startup and recovery](stage4/stacks/ai/VLLM_GUIDE.md).
     *   `runner`: GitLab CI/CD runners executing build jobs.
     *   `happier`: Private Codex/agent relay and embedded WebUI at
         `https://happier.aiursoft.com`, with E2EE and public registration disabled.
@@ -42,8 +43,8 @@ To provide massive compute power (GPU/CPU) and cheap storage (HDD) that would be
 
 ```bash
 # On the ProArt Machine:
-git clone https://gitlab.aiursoft.cn/aiursoft/bash-app.git
-cd bash-app/Boxes/BoxForProart
+git clone https://gitlab.aiursoft.com/aiursoft/boxforproart.git
+cd boxforproart
 sudo bash deploy.sh
 ```
 

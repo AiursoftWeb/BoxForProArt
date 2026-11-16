@@ -137,6 +137,16 @@ exec 9>"$cleanup_dir/.cleanup.lock"
 flock -s 9
 touch "$cleanup_dir/.cleanup.ready"
 
+# Containers on the same host inherit the same hardware-derived system ID.
+# Each Swarm task is a distinct runner manager, including start-first updates.
+mkdir -p /etc/gitlab-runner
+python3 - <<'PYIDENTITY' > /etc/gitlab-runner/.runner_system_id
+import hashlib
+import os
+
+print("r_" + hashlib.sha256(os.environ["CI_TASK_ID"].encode()).hexdigest()[:12])
+PYIDENTITY
+
 echo "Registering runner with name $HOSTNAME"
 gitlab-runner register \
     --name "$HOSTNAME" \

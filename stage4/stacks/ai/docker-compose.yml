@@ -38,6 +38,8 @@ services:
       - --speculative-config
       - '{"method":"dflash","model":"z-lab/Qwen3.8-27B-DFlash2","num_speculative_tokens":2,"draft_tensor_parallel_size":2,"rejection_sample_method":"standard"}'
     environment:
+      # Share both GPUs with Ollama and TTS via the node NVIDIA runtime.
+      # Swarm GPU reservations are exclusive and would leave this task pending.
       - NVIDIA_VISIBLE_DEVICES=0,1
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       # Download gated weights separately; the serving container receives no HF token.
@@ -71,14 +73,6 @@ services:
         limits:
           cpus: '16.0'
           memory: 64G
-        reservations:
-          generic_resources:
-            - discrete_resource_spec:
-                kind: "NVIDIA-GPU"
-                value: 0
-            - discrete_resource_spec:
-                kind: "NVIDIA-GPU"
-                value: 1
       update_config:
         order: stop-first
         delay: 60s

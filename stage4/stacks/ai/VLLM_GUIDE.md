@@ -87,6 +87,13 @@ resident by both Ollama and gateway warmup requests.
 6. Verify direct inference, gateway streaming and cancellation, Open WebUI
    chat, and unchanged embedding and speech services before restoring traffic.
 
+The node uses the NVIDIA default container runtime. vLLM makes both GPUs
+visible with `NVIDIA_VISIBLE_DEVICES=0,1` and shares them with Ollama and
+IndexTTS. Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to
+vLLM: Ollama already reserves the advertised devices, and Swarm schedules
+whole resource units rather than remaining VRAM. Such a reservation leaves
+the vLLM task pending even when enough VRAM is available.
+
 vLLM uses two RTX 3090 GPUs with tensor parallelism 2. Its KV pool is explicitly
 limited to 960 MiB per GPU for one 16K request. The 76% GPU utilization setting
 is a startup allowance; the explicit KV size overrides automatic KV sizing.

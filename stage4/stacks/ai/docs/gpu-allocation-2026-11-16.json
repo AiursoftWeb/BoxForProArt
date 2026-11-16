@@ -1,0 +1,26 @@
+{
+  "kind": "measured-post-inference-same-time-snapshot",
+  "MiB": [
+    {
+      "vllm": 19216,
+      "bge": 0,
+      "asr": 4018,
+      "tts": 0,
+      "other": 467,
+      "free": 875
+    },
+    {
+      "vllm": 19216,
+      "bge": 980,
+      "asr": 0,
+      "tts": 2326,
+      "other": 472,
+      "free": 1582
+    }
+  ],
+  "test_minimum_free_mib": [
+    619,
+    210
+  ],
+  "source": "test-bge1-gpu-placement.jsonl coexistence-completed; bge1-fresh-tts-probe.json"
+}

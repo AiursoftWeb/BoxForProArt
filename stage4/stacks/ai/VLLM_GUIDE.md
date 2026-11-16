@@ -1,6 +1,6 @@
 # vLLM chat on Proart
 
-The AI stack serves text chat with `orcarouter/Qwen3.8-27B-Uncensored-FP8`
+The AI stack serves text and single-image chat with `orcarouter/Qwen3.8-27B-Uncensored-FP8`
 and the `z-lab/Qwen3.8-27B-DFlash2` speculative draft. Ollama continues
 serving `bge-m3`; IndexTTS continues sharing GPU 0.
 
@@ -9,6 +9,21 @@ The vLLM endpoint is internal: `http://vllm-server:8000/v1`, model
 OllamaGateway as an OpenAI-compatible provider to expose it through the
 existing authenticated gateway and Open WebUI. Its provider Base URL must
 be `http://vllm-server:8000` without `/v1`: OllamaGateway adds `/v1` itself.
+
+## Image inputs
+
+The target checkpoint includes the vision encoder and processor. The service
+accepts one image per prompt and disables video. This also applies to images
+retained in earlier turns, including PhotoRanking's three-turn summary flow.
+OllamaGateway can translate Ollama `images` inputs to OpenAI chat completions;
+keep the provider configured as OpenAI-compatible with chat-completions support.
+Do not enable `--language-model-only`: it rejects every image request with HTTP 400.
+
+The vision encoder uses weight tensor parallelism across both GPUs, with BF16
+vision weights. Image processing is bounded to 1,048,576 pixels (about 1 MP),
+preserving aspect ratio; larger images are resized before encoding. This bounds
+vision activation memory on the shared GPUs. Text precision, DFlash2, and the
+16K context limit remain unchanged. Image tokens count toward that context.
 
 ## Prepare model files
 
@@ -150,6 +165,9 @@ configuration to an upstream hash. Check:
   sibling-model token rates as this deployment's measured performance.
 - `/health` and `/v1/models`, gateway model discovery, nonstreaming and SSE,
   cancellation, queueing, over-limit rejection, and service restart work.
+- Single-image OCR, visual questions, and image-bearing multi-turn requests
+  work through both OpenAI and Ollama gateway APIs. Check image limits and
+  simultaneous image inference, embedding, and speech memory peaks.
 - `bge-m3` still returns 1,024-dimensional embeddings and the old Qwen does
   not reappear after a gateway warmup cycle. Speech still works.
 

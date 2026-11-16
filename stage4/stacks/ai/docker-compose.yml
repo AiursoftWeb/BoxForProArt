@@ -16,7 +16,13 @@ services:
       - '2'
       - --dtype
       - bfloat16
-      - --language-model-only
+      # PhotoRanking sends one image through the shared gateway chat models.
+      - --limit-mm-per-prompt
+      - '{"image":1,"video":0}'
+      - --mm-encoder-tp-mode
+      - weights
+      - --mm-processor-kwargs
+      - '{"images_kwargs":{"size":{"shortest_edge":65536,"longest_edge":1048576}}}'
       - --max-model-len
       - '16384'
       - --max-num-seqs

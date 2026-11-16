@@ -125,6 +125,9 @@ services:
     environment:
       - TZ=UTC
       - PhotoRootPath=/photos
+      - Summary__Endpoint=https://ollama.aiursoft.com/api/chat
+      - Summary__Model=aiursoft-localization:latest
+      - Summary__ApiKey={{PHOTORANKING_AI_TOKEN}}
     networks:
       - proxy_app
     stop_grace_period: 60s

@@ -302,29 +302,9 @@ function create_network() {
     fi
 }
 
-function check_ai_model_cache() {
-    local compose_file=$1
-    local compose_dir image model_cache compile_cache
-    compose_dir=$(dirname "$(realpath "$compose_file")")
-    image=$(yq -r '.services["vllm-server"].image' "$compose_file")
-    model_cache=$(yq -r '.volumes["vllm-models"].driver_opts.device' "$compose_file")
-    compile_cache=$(yq -r '.volumes["vllm-cache"].driver_opts.device' "$compose_file")
-    sudo mkdir -p "$model_cache" "$compile_cache"
-    print_ok "Checking cached AI models before changing the stack..."
-    sudo docker run --rm --network none --entrypoint python3 \
-        -e HF_HUB_OFFLINE=1 \
-        --mount "type=bind,src=$(realpath "$compose_file"),dst=/run/box/compose.yml,readonly" \
-        --mount "type=bind,src=$compose_dir/check_model_cache.py,dst=/run/box/check_model_cache.py,readonly" \
-        --mount "type=bind,src=$model_cache,dst=/root/.cache/huggingface/hub,readonly" \
-        "$image" /run/box/check_model_cache.py /run/box/compose.yml /root/.cache/huggingface/hub
-}
-
 function deploy() {
     local original_compose_file=$1
     local stack_name=$2
-    if [ "$stack_name" = "ai" ]; then
-        check_ai_model_cache "$original_compose_file"
-    fi
     local temp_compose_file=$(mktemp)
 
     # Always copy to a temporary file to avoid modifying the original

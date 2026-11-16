@@ -12,18 +12,22 @@ be `http://vllm-server:8000` without `/v1`: OllamaGateway adds `/v1` itself.
 
 ## Prepare model files
 
-Box creates the AI cache directories and runs an offline preflight before
-changing the AI stack. The preflight reads the model names from Compose,
-checks the cached configurations, tokenizer, chat template, weight index and
-complete safetensors files, and requires no GPU or Hugging Face credentials.
-With a complete cache, normal Box deployment starts the declared vLLM service;
-Swarm also restores it after a reboot. No separate serving command is needed.
+The existing `deploy.sh` discovers this stack and creates its declared bind
+mount directories through the same path used by every business stack. With
+the model files restored, run normal Box deployment to start vLLM with all
+GPU, memory, model and restart settings from Compose. No separate serving
+command or AI-specific deployment hook is needed. Swarm restores the service
+after a normal server reboot.
 
-Restore `/swarm-vol/ssd/ai/vllm/huggingface-hub` with the other persistent
-application volumes during recovery. The compilation cache at
-`/swarm-vol/ssd/ai/vllm/cache` is optional: vLLM rebuilds it automatically.
-If model files are missing, Box stops before changing the AI stack and asks
-the operator to complete the following login/download step, then rerun Box.
+For a rebuilt server, restore the usual Box environment and persistent
+application volumes, including `/swarm-vol/ssd/ai/vllm/huggingface-hub`, then
+run `sudo bash deploy.sh`. The compilation cache at
+`/swarm-vol/ssd/ai/vllm/cache` can be empty: vLLM rebuilds it automatically.
+
+If model weights were also lost, the offline vLLM container cannot become
+healthy until they are restored. Complete the manual login/download step
+below, then let Swarm retry or rerun Box deployment. This data preparation
+step does not change `deploy.sh` or require a manual serving container.
 
 The target is gated on Hugging Face. An operator must accept its access
 conditions using an account permitted to download the weights. Do not place
@@ -42,7 +46,7 @@ run the following **on Proart**. It downloads weights without starting GPU
 inference or stopping the existing model:
 
 ```bash
-sudo mkdir -p /swarm-vol/ssd/ai/vllm/huggingface-hub
+sudo mkdir -p /swarm-vol/ssd/ai/vllm/huggingface-hub /swarm-vol/ssd/ai/vllm/cache
 sudo docker run --rm -it \
   --entrypoint /bin/bash \
   -v /swarm-vol/ssd/ai/vllm/huggingface-hub:/root/.cache/huggingface/hub \

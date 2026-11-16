@@ -22,10 +22,12 @@ services:
       - --max-num-seqs
       - '1'
       - --max-num-batched-tokens
-      - '4096'
-      # GPU 0 also serves bge-m3 and IndexTTS. Leave headroom on both cards.
+      - '1024'
+      # GPU 0 also serves bge-m3 and IndexTTS. Bound KV for one 16K request.
       - --gpu-memory-utilization
-      - '0.80'
+      - '0.76'
+      - --kv-cache-memory-bytes
+      - '1006632960' # 960 MiB per GPU, including the draft and recurrent state.
       - --kv-cache-dtype
       - bfloat16
       - --mamba-ssm-cache-dtype
@@ -34,7 +36,7 @@ services:
       - --reasoning-parser
       - qwen3
       - --speculative-config
-      - '{"method":"dflash","model":"z-lab/Qwen3.8-27B-DFlash2","num_speculative_tokens":7,"draft_tensor_parallel_size":2,"rejection_sample_method":"standard"}'
+      - '{"method":"dflash","model":"z-lab/Qwen3.8-27B-DFlash2","num_speculative_tokens":2,"draft_tensor_parallel_size":2,"rejection_sample_method":"standard"}'
     environment:
       - NVIDIA_VISIBLE_DEVICES=0,1
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility

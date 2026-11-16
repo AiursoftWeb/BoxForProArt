@@ -12,6 +12,19 @@ be `http://vllm-server:8000` without `/v1`: OllamaGateway adds `/v1` itself.
 
 ## Prepare model files
 
+Box creates the AI cache directories and runs an offline preflight before
+changing the AI stack. The preflight reads the model names from Compose,
+checks the cached configurations, tokenizer, chat template, weight index and
+complete safetensors files, and requires no GPU or Hugging Face credentials.
+With a complete cache, normal Box deployment starts the declared vLLM service;
+Swarm also restores it after a reboot. No separate serving command is needed.
+
+Restore `/swarm-vol/ssd/ai/vllm/huggingface-hub` with the other persistent
+application volumes during recovery. The compilation cache at
+`/swarm-vol/ssd/ai/vllm/cache` is optional: vLLM rebuilds it automatically.
+If model files are missing, Box stops before changing the AI stack and asks
+the operator to complete the following login/download step, then rerun Box.
+
 The target is gated on Hugging Face. An operator must accept its access
 conditions using an account permitted to download the weights. Do not place
 that account's token in Compose, `.env.prod`, source control, or chat.
@@ -54,22 +67,33 @@ resident by both Ollama and gateway warmup requests.
    rollback configuration using the established backup procedure.
 2. Remove only `qwen3.8:27b` from Ollama provider warmup. Keep the `bge-m3`
    embedding warmup and all unrelated providers and routes.
-3. Drain active requests to the old local chat backend and temporarily
-   disable its routes. Confirm no warmup or new chat request can reload it.
+3. Drain active requests to the old local chat backend and move its routes
+   to an available fallback, or temporarily disable them. Confirm no warmup
+   or new chat request can reload it.
 4. Stop `qwen3.8:27b` through Ollama and verify that it has left `ollama ps`.
    Keep its weight files available until the new service passes acceptance.
 5. Deploy the reviewed AI stack through the existing Box deployment process.
-   Wait for vLLM health, then configure the OpenAI-compatible provider at
+   Wait for vLLM health and complete independent acceptance. Keep fallback
+   routes until an operator explicitly approves switching traffic; starting
+   the service alone does not authorize a gateway cutover. Then configure
+   the OpenAI-compatible provider at
    `http://vllm-server:8000` with maximum parallelism 1, chat-completions
    support, and model `home-chat`. Preserve existing public virtual-model
    names when switching their local chat routes.
 6. Verify direct inference, gateway streaming and cancellation, Open WebUI
    chat, and unchanged embedding and speech services before restoring traffic.
 
-vLLM uses two RTX 3090 GPUs with tensor parallelism 2. The initial per-card
-budget is 80% of 24 GiB (19.2 GiB), leaving room for embedding, speech, and
-runtime overhead. It is a starting budget, not a measured peak guarantee.
-Do not copy a 90% dedicated-GPU setting onto this shared machine.
+vLLM uses two RTX 3090 GPUs with tensor parallelism 2. Its KV pool is explicitly
+limited to 960 MiB per GPU for one 16K request. The 76% GPU utilization setting
+is a startup allowance; the explicit KV size overrides automatic KV sizing.
+Neither setting is a hard limit on transient CUDA workspace usage.
+
+Require at least 800 MiB free on **each** GPU during startup and concurrent
+chat, embedding and speech acceptance. Measure the peak non-vLLM usage with
+vLLM stopped first, using short and long prose, poetry, and the first synthesis
+after speech startup. Then verify the services together. Count embedding
+memory once when using the total GPU measurement. Idle speech memory is
+insufficient. Do not copy a 90% dedicated-GPU setting onto this shared machine.
 
 ## Precision and latency
 
@@ -79,11 +103,15 @@ GDN SSM state uses FP32. The draft is the unquantized BF16 checkpoint.
 The target checkpoint determines weight quantization automatically.
 
 The total context limit is 16,384 tokens, including input, reasoning, and
-visible output. One request runs at a time. DFlash2 proposes seven tokens per
+visible output. One request runs at a time. DFlash2 proposes two tokens per
 step with standard rejection sampling; it preserves the deployed target's
 sampling distribution rather than the original unmodified BF16 model.
 Modified weights can reduce draft acceptance, which requires measurement.
 Do not use approximate verification to improve speed.
+
+Two proposals and 1,024-token prefill chunks reduce verification state and
+activation workspace on this shared machine. They trade some speed for
+headroom while retaining target/draft precision and the 16K context limit.
 
 Preserve the checkpoint's default xhigh reasoning for quality-first chat.
 Callers can explicitly request medium or low, but lowering reasoning effort

@@ -2,7 +2,8 @@
 
 The AI stack serves text and single-image chat with `orcarouter/Qwen3.8-27B-Uncensored-FP8`
 and the `z-lab/Qwen3.8-27B-DFlash2` speculative draft. Ollama continues
-serving `bge-m3`; IndexTTS continues sharing GPU 0.
+serving `bge-m3` on GPU 1 alongside IndexTTS. The STT stack keeps its
+FP16 `large-v3` ASR model resident on GPU 0.
 
 The vLLM endpoint is internal: `http://vllm-server:8000/v1`, model
 `home-chat`. It has no published host port. Configure the existing
@@ -103,19 +104,36 @@ resident by both Ollama and gateway warmup requests.
    chat, and unchanged embedding and speech services before restoring traffic.
 
 The node uses the NVIDIA default container runtime. vLLM makes both GPUs
-visible with `NVIDIA_VISIBLE_DEVICES=0,1` and shares them with Ollama and
-IndexTTS. Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to
-vLLM: Ollama already reserves the advertised devices, and Swarm schedules
-whole resource units rather than remaining VRAM. Such a reservation leaves
-the vLLM task pending even when enough VRAM is available.
+visible with `NVIDIA_VISIBLE_DEVICES=0,1`. Ollama and IndexTTS expose only
+host GPU 1. Each single-GPU container selects its logical CUDA device 0.
+This groups embeddings and speech synthesis on GPU 1. The STT stack exposes
+only host GPU 0 and enables `WHISPERX_PRELOAD=true`, loading the configured
+ASR model before it becomes healthy. vLLM shards equally across both cards. Ollama defaults to a 4,096-token
+context for bge-m3 through `OLLAMA_CONTEXT_LENGTH`. This is an input-length
+limit, not a guarantee of lower resident memory. The vLLM image, precision,
+and 16K chat context remain unchanged.
+
+Deploy the AI, ReporterTTS and STT stacks together through the existing Box
+workflow. The normal full `sudo bash deploy.sh` includes all three; an AI-only
+filter does not update the other stacks. The WhisperX image must include the
+resident-model implementation from ExternalImages MR !51 before deploying
+the STT preload setting. Existing model caches and normal service credentials
+remain prerequisites; no separate inference launch command is required.
+
+Do not add a Swarm `NVIDIA-GPU` generic-resource reservation to these shared
+services: Swarm reserves whole devices rather than remaining VRAM. Use the
+NVIDIA runtime visibility variables to select devices. A reservation value
+is a quantity, not a physical GPU index.
 
 vLLM uses two RTX 3090 GPUs with tensor parallelism 2. Its KV pool is explicitly
 limited to 960 MiB per GPU for one 16K request. The 76% GPU utilization setting
 is a startup allowance; the explicit KV size overrides automatic KV sizing.
 Neither setting is a hard limit on transient CUDA workspace usage.
 
-Require at least 800 MiB free on **each** GPU during startup and concurrent
-chat, embedding and speech acceptance. Measure the peak non-vLLM usage with
+Measure free memory on **each** GPU during startup and concurrent chat,
+embedding and speech acceptance. Actual successful inference is the acceptance
+criterion; 800 MiB is a planning target, and smaller headroom can be accepted
+when measured workloads complete without OOM. Measure peak non-vLLM usage with
 vLLM stopped first, using short and long prose, poetry, and the first synthesis
 after speech startup. Then verify the services together. Count embedding
 memory once when using the total GPU measurement. Idle speech memory is

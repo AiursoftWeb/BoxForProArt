@@ -16,6 +16,9 @@ services:
       - '2'
       - --dtype
       - bfloat16
+      # Leave room for the draft model alongside the other GPU services.
+      - --cpu-offload-gb
+      - '2'
       # PhotoRanking sends one image through the shared gateway chat models.
       - --limit-mm-per-prompt
       - '{"image":1,"video":0}'

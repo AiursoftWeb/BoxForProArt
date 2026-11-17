@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   app:
-    image: hub.aiursoft.com/aiursoft/http_error_alert_center_bridge:latest
+    image: hub.aiursoft.com/aiursoft/logwatchdog:latest
     environment:
       - SERVER_NAME=proart
       - MONITORED_HOSTS=*

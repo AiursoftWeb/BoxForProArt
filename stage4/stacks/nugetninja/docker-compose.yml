@@ -6,6 +6,8 @@ services:
     volumes:
       - ninja-cache:/root/.local/share/NugetNinjaWorkspace/
     environment:
+      - PrBot__NugetServer=https://nupkg.aiursoft.com/v3/index.json
+      - PrBot__NpmRegistry=https://nopkg.aiursoft.com/npm/
       - PrBot__Servers__0__Provider=GitLab
       - PrBot__Servers__0__EndPoint=https://gitlab.aiursoft.com
       - PrBot__Servers__0__PushEndPoint=https://{0}@gitlab.aiursoft.com

@@ -314,7 +314,7 @@ public_images=(
 # eight-hour schedule as public images; GitLab CI no longer pushes them to CN.
 internal_images=(
     "aiursoft/clickhouse_app_log_error_monitor:latest"
-    "aiursoft/http_error_alert_center_bridge:latest"
+    "aiursoft/logwatchdog:latest"
     "aiursoft/employeecenter:latest"
     "aiursoft/folderagent:latest"
     "aiursoft/musicexam:latest"

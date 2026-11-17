@@ -16,9 +16,11 @@ services:
       - '2'
       - --dtype
       - bfloat16
-      # Leave room for the draft model alongside the other GPU services.
+      # Offload the image encoder; keep per-token decoder weights on the GPUs.
       - --cpu-offload-gb
       - '2'
+      - --cpu-offload-params
+      - visual
       # PhotoRanking sends one image through the shared gateway chat models.
       - --limit-mm-per-prompt
       - '{"image":1,"video":0}'

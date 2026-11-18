@@ -1,7 +1,7 @@
 FROM localhost:8080/box_starting/local_runner:latest
 
-ARG HAPPIER_VERSION=0.2.17
-ARG CODEX_VERSION=0.162.1
+ARG HAPPIER_VERSION=0.2.21
+ARG CODEX_VERSION=0.170.0
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs tini openssh-client && \
     rm -rf /var/lib/apt/lists/* && \

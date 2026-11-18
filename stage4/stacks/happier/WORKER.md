@@ -26,7 +26,7 @@ selects which stacks to deploy.
 
 Images are built and pushed to the existing bootstrap registry; the public image
 puller needs no new image entry. Worker inherits runner, and installs pinned
-stable npm releases (`@happier-dev/cli` 0.2.17 and `@openai/codex` 0.162.1) while
+stable npm releases (`@happier-dev/cli` 0.2.21 and `@openai/codex` 0.170.0) while
 building, using runner's npm registry configuration. No packages are downloaded
 during normal container startup.
 

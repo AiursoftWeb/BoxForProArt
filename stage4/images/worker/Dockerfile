@@ -33,7 +33,7 @@ RUN curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/install-agy.sh 
     /opt/worker-tools/agy --version && /opt/worker-tools/agy --help && \
     rm /tmp/install-agy.sh
 
-RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nuget.aiursoft.com/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
+RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nupkg.aiursoft.com/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.Kanban.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.S360.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.AlertCenter.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \

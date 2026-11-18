@@ -209,7 +209,7 @@ services:
         limits:
           cpus: '6.0'
           memory: 12G
-      replicas: 7
+      replicas: 12
       update_config:
         order: start-first
         delay: 5s

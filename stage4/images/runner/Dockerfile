@@ -245,4 +245,14 @@ RUN chmod +x /app/entry.sh
 COPY hijack_docker.sh /usr/local/bin/docker
 RUN chmod +x /usr/local/bin/docker
 
+# Playwright browser jobs use the system Chrome Stable channel.
+RUN install -d -m 0755 /etc/apt/keyrings && \
+    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub -o /etc/apt/keyrings/google-chrome.asc && \
+    printf '%s\n' 'deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.asc] https://dl.google.com/linux/chrome/deb/ stable main' \
+      > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/* && \
+    google-chrome --version
+
 ENTRYPOINT ["/bin/bash", "/app/entry.sh"]

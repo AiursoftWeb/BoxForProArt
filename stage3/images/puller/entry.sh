@@ -280,6 +280,7 @@ images=(
     "gitlab/gitlab-ee:19.4.2-ee.0"
     "gitlab/gitlab-ee:19.4.3-ee.0"
     "gitlab/gitlab-ee:19.4.5-ee.0"
+    "gitlab/gitlab-ee:19.4.10-ee.0"
     "gitlab/gitlab-ee:19.0.1-ee.0"
     "golang"
     "golang:1.21.5"

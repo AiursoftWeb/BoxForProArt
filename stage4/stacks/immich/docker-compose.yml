@@ -92,31 +92,6 @@ services:
         order: stop-first
         delay: 60s
 
-  authentik_proxy:
-    image: hub.aiursoft.com/ghcr.io/goauthentik/proxy:2026.8.5
-    volumes:
-      - type: bind
-        source: /dev/shm
-        target: /dev/shm
-        read_only: false
-    environment:
-      AUTHENTIK_HOST: "https://auth.aiursoft.com/"
-      AUTHENTIK_INSECURE: "false"
-      AUTHENTIK_TOKEN: "{{RANKING_OUTPOST_TOKEN}}"
-    stop_grace_period: 20s
-    networks:
-      - proxy_app
-    deploy:
-      labels:
-        shepherd.autoupdate: "true"
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-      update_config:
-        order: start-first
-        delay: 5s
-
   ranking:
     image: hub.aiursoft.com/anduin/photoranking
     volumes:
@@ -125,6 +100,10 @@ services:
     environment:
       - TZ=UTC
       - PhotoRootPath=/photos
+      - RankingOidc__Authority=https://auth.aiursoft.com/application/o/photoranking/
+      - RankingOidc__PublicOrigin=https://ranking.anduinlab.com
+      - RankingOidc__ClientId=photoranking
+      - RankingOidc__ClientSecret={{RANKING_OIDC_CLIENT_SECRET}}
       - Summary__Endpoint=https://ollama.aiursoft.com/api/chat
       - Summary__Model=aiursoft-localization:latest
       - Summary__ApiKey={{PHOTORANKING_AI_TOKEN}}

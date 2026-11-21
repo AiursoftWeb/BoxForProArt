@@ -37,9 +37,11 @@ RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><package
     dotnet tool install Aiursoft.Kanban.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.S360.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.AlertCenter.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
+    dotnet tool install Aiursoft.DMS.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     /opt/worker-tools/kanban --help && \
     /opt/worker-tools/s360 --help && \
     /opt/worker-tools/alertcenter --help && \
+    /opt/worker-tools/dms --help && \
     rm /tmp/worker-nuget.config
 
 # Image tools precede home tools; preserve user-scoped tools and other home data.

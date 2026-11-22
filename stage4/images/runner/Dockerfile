@@ -167,15 +167,14 @@ RUN ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
 
 # Pin JB and ReportGenerator; installation failures must fail the image build.
 # .NET Global Tools
-RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nupkg.aiursoft.com/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
+RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" /></packageSources></configuration>' > ./temp.config && \
     dotnet tool install JetBrains.ReSharper.GlobalTools --version 2026.3.0 --global --configfile ./temp.config -v d && \
     dotnet tool install dotnet-reportgenerator-globaltool --version 5.5.12 --global --configfile ./temp.config -v d && \
     dotnet tool install aiursoft.apkg.client --global --configfile ./temp.config -v d && \
     rm ./temp.config
 
 # Node.js Global Tools
-RUN npm config set registry https://npm.aiursoft.com && \
-    npm install -g typescript ts-node npm yarn --loglevel verbose
+RUN npm install -g typescript ts-node npm yarn --registry=https://registry.npmjs.org/ --loglevel verbose
 
 # Install GitLab Runner as a standalone binary. The runner is launched directly
 # by entry.sh, so installing a systemd service inside this container is neither

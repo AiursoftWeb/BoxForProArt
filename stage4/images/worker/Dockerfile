@@ -5,7 +5,7 @@ ARG CODEX_VERSION=0.170.0
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs tini openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install -g @happier-dev/cli@${HAPPIER_VERSION} @openai/codex@${CODEX_VERSION} && \
+    npm install -g @happier-dev/cli@${HAPPIER_VERSION} @openai/codex@${CODEX_VERSION} --registry=https://registry.npmjs.org/ && \
     happier --version && codex --version
 
 # Ubuntu may already own UID 1000. Give that identity the worker's stable name.
@@ -33,7 +33,7 @@ RUN curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/install-agy.sh 
     /opt/worker-tools/agy --version && /opt/worker-tools/agy --help && \
     rm /tmp/install-agy.sh
 
-RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="Aiursoft" value="https://nupkg.aiursoft.com/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
+RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" /></packageSources></configuration>' > /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.Kanban.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.S360.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \
     dotnet tool install Aiursoft.AlertCenter.Client --tool-path /opt/worker-tools --configfile /tmp/worker-nuget.config && \

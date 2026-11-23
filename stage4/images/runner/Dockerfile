@@ -114,6 +114,20 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
         ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     rm -rf /var/lib/apt/lists/*
 
+# 为 Playwright 的 chrome 通道预装 Google Chrome Stable。
+RUN set -eu; \
+    download_dir="$(mktemp -d)"; \
+    chmod 0755 "$download_dir"; \
+    curl --fail --show-error --silent --location \
+      --connect-timeout 20 --max-time 300 --retry 5 --retry-all-errors \
+      https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+      -o "$download_dir/google-chrome-stable.deb"; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends "$download_dir/google-chrome-stable.deb"; \
+    rm -rf "$download_dir" /var/lib/apt/lists/*; \
+    test -x /opt/google/chrome/chrome; \
+    google-chrome --version
+
 # Watermark rendering tests need Latin and CJK glyphs at this standard path.
 RUN test -r /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc && \
     fc-scan --format '%{family}\n' /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc

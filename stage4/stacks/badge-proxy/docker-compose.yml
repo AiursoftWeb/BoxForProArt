@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   app:
-    image: hub.aiursoft.com/aiursoft/internalimages/badge-proxy:latest
+    image: hub.aiursoft.com/aiursoft/badgeproxy:latest
     environment:
       - GITLAB_URL=http://gitlab_gitlab
       - GITLAB_ACCESS_TOKEN={{BADGE_PROXY_GITLAB_TOKEN}}

@@ -50,6 +50,11 @@ services:
       - PrBot__LocalizationTargetLanguages__24=fi-FI
       - PrBot__LocalizationTargetLanguages__25=hi-IN
       - PrBot__LocalizationTargetLanguages__26=el-GR
+      - PrBot__LocalizationTargetLanguages__27=hr-HR
+      - PrBot__LocalizationLanguageExclusions__0__Repository=aiursoft/rms
+      - PrBot__LocalizationLanguageExclusions__0__Languages__0=hr-HR
+      - PrBot__LocalizationLanguageExclusions__1__Repository=moog/rms
+      - PrBot__LocalizationLanguageExclusions__1__Languages__0=hr-HR
       - MergeBot__Servers__0__Provider=GitLab
       - MergeBot__Servers__0__EndPoint=https://gitlab.aiursoft.com
       - MergeBot__Servers__0__UserName=nuget-ninja

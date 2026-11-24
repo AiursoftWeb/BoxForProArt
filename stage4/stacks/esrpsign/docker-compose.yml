@@ -9,14 +9,13 @@ services:
       - esrpsign-data:/data
     environment:
       - ConnectionStrings__DbType=MySql
-      - ConnectionStrings__DefaultConnection=Server=db;Database=esrpsign;Uid=esrpsign;Pwd={{ESRPSIGN_MYSQL_PASSWORD}};
+      - ConnectionStrings__DefaultConnection=Server=db;Database=esrpsign;Uid=esrpsign;Pwd=<esrpsign_password>;
       - Storage__Path=/data/files
       - AppSettings__AuthProvider=OIDC
       - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/esrp-sign
       - AppSettings__OIDC__ClientId={{ESRPSIGN_CLIENT_ID}}
       - AppSettings__OIDC__ClientSecret={{ESRPSIGN_CLIENT_SECRET}}
       - AppSettings__Local__AllowRegister=false
-      - AppSettings__Local__InitialAdminPassword={{ESRPSIGN_INITIAL_ADMIN_PASSWORD}}
     networks:
       - proxy_app
       - internal
@@ -42,7 +41,7 @@ services:
       - MYSQL_RANDOM_ROOT_PASSWORD=true
       - MYSQL_DATABASE=esrpsign
       - MYSQL_USER=esrpsign
-      - MYSQL_PASSWORD={{ESRPSIGN_MYSQL_PASSWORD}}
+      - MYSQL_PASSWORD=<esrpsign_password>
     networks:
       - internal
     stop_grace_period: 60s

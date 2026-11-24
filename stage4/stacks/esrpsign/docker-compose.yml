@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  app:
+    depends_on:
+      - db
+    image: hub.aiursoft.com/aiursoft/esrpsign:latest
+    volumes:
+      - esrpsign-data:/data
+    environment:
+      - ConnectionStrings__DbType=MySql
+      - ConnectionStrings__DefaultConnection=Server=db;Database=esrpsign;Uid=esrpsign;Pwd={{ESRPSIGN_MYSQL_PASSWORD}};
+      - Storage__Path=/data/files
+      - AppSettings__AuthProvider=OIDC
+      - AppSettings__OIDC__Authority=https://auth.aiursoft.com/application/o/esrp-sign
+      - AppSettings__OIDC__ClientId={{ESRPSIGN_CLIENT_ID}}
+      - AppSettings__OIDC__ClientSecret={{ESRPSIGN_CLIENT_SECRET}}
+      - AppSettings__Local__AllowRegister=false
+      - AppSettings__Local__InitialAdminPassword={{ESRPSIGN_INITIAL_ADMIN_PASSWORD}}
+    networks:
+      - proxy_app
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 5s
+
+  db:
+    image: hub.aiursoft.com/mysql:9.7.0
+    command: --skip-log-bin
+    volumes:
+      - esrpsign-db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=esrpsign
+      - MYSQL_USER=esrpsign
+      - MYSQL_PASSWORD={{ESRPSIGN_MYSQL_PASSWORD}}
+    networks:
+      - internal
+    stop_grace_period: 60s
+    deploy:
+      labels:
+        shepherd.autoupdate: "true"
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+      update_config:
+        order: stop-first
+        delay: 60s
+
+volumes:
+  esrpsign-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/esrpsign-data/data
+  esrpsign-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /swarm-vol/ssd/esrpsign-data/mysql
+
+networks:
+  proxy_app:
+    external: true
+  internal:
+    driver: overlay

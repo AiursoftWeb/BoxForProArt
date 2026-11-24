@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   app:
-    image: hub.aiursoft.com/aiursoft/clickhouse_app_log_error_monitor:latest
+    image: hub.aiursoft.com/aiursoft/dotnetwatchdog:latest
     environment:
       - NODE_NAME=proart
       - CLICKHOUSE_PUBLIC_URL=https://clickhouse-proart.aiursoft.com

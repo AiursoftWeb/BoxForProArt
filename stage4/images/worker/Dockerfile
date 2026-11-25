@@ -2,11 +2,13 @@ FROM localhost:8080/box_starting/local_runner:latest
 
 ARG HAPPIER_VERSION=0.2.21
 ARG CODEX_VERSION=0.170.0
+ARG COPILOT_VERSION=1.0.116
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs tini openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g @happier-dev/cli@${HAPPIER_VERSION} @openai/codex@${CODEX_VERSION} --registry=https://registry.npmjs.org/ && \
-    happier --version && codex --version
+    npm install -g --prefix /opt/worker-tools @github/copilot@${COPILOT_VERSION} --registry=https://registry.npmjs.org/ && \
+    happier --version && codex --version && /opt/worker-tools/bin/copilot --version
 
 # Ubuntu may already own UID 1000. Give that identity the worker's stable name.
 RUN set -eux; \
@@ -46,7 +48,7 @@ RUN printf '%s\n' '<?xml version="1.0" encoding="utf-8"?><configuration><package
 
 # Image tools precede home tools; preserve user-scoped tools and other home data.
 ENV HOME=/home/anduin \
-    PATH=/opt/worker-tools:/home/anduin/.local/bin:/home/anduin/.cargo/bin:/home/anduin/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    PATH=/opt/worker-tools/bin:/opt/worker-tools:/home/anduin/.local/bin:/home/anduin/.cargo/bin:/home/anduin/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     HAPPIER_SERVER_URL=https://happier.aiursoft.com \
     HAPPIER_WEBAPP_URL=https://happier.aiursoft.com \
     HAPPIER_PUBLIC_SERVER_URL=https://happier.aiursoft.com \
@@ -57,6 +59,14 @@ ENV HOME=/home/anduin \
 COPY entry.sh /usr/local/bin/worker-entry
 COPY health.py /usr/local/bin/worker-health
 COPY recover.sh /usr/local/bin/worker-recover
-RUN chmod 0755 /usr/local/bin/worker-entry /usr/local/bin/worker-health /usr/local/bin/worker-recover
+COPY configure-copilot.py /usr/local/bin/worker-configure-copilot
+COPY copilot-super.sh /opt/worker-tools/copilot-cici-super-happier
+COPY copilot-super-env.sh /opt/worker-tools/copilot-super-env.sh
+COPY copilot-provider-key.sh /opt/worker-tools/copilot-provider-key
+COPY copilot-home/ /opt/worker-copilot-home/
+RUN chmod 0755 /usr/local/bin/worker-entry /usr/local/bin/worker-health /usr/local/bin/worker-recover \
+    /usr/local/bin/worker-configure-copilot /opt/worker-tools/copilot-cici-super-happier \
+    /opt/worker-copilot-home /opt/worker-tools/copilot-provider-key && \
+    chmod 0644 /opt/worker-copilot-home/* /opt/worker-tools/copilot-super-env.sh
 WORKDIR /home/anduin
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/worker-entry"]

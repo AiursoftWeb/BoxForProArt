@@ -19,15 +19,21 @@ export NO_PROXY="127.0.0.1,localhost,::1${NO_PROXY:+,$NO_PROXY}"
 export no_proxy="$NO_PROXY"
 export TMPDIR="$HOME/.cache/tmp"
 mkdir -p "$HOME/Source/Repos" "$TMPDIR"
+# Provider preflight can happen before a per-session profile is applied.
+source /opt/worker-tools/copilot-super-env.sh
 cd "$HOME/Source/Repos"
 
 # Explicit commands (for maintenance) run with the same home and user as sessions.
-if [ "$#" -gt 0 ]; then exec "$@"; fi
+if [ "$#" -gt 0 ]; then
+    worker-configure-copilot
+    exec "$@"
+fi
 
 # Even auth status may clean stale daemon state: save recovery evidence first.
 mkdir -p "$HOME/.worker"
 exec 9> "$HOME/.worker/container.lock"
 flock -n 9 || { echo 'Another worker owns this home directory.' >&2; exit 1; }
+worker-configure-copilot
 worker-recover prepare
 runtime_dir=${WORKER_RUNTIME_DIR:-/tmp/worker}
 mkdir -p "$runtime_dir"
@@ -72,7 +78,7 @@ done
 rm -f "$request_file" "$runtime_dir/pairing"
 trap - EXIT
 echo 'Starting Happier worker daemon in the foreground.'
-echo 'Complete Codex authentication on this machine before starting coding tasks.'
+echo 'Use a configured backend profile or complete provider authentication before starting coding tasks.'
 happier daemon start-sync &
 daemon_pid=$!
 setsid worker-recover restore &

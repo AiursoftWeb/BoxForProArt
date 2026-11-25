@@ -22,10 +22,11 @@ if [ "${1:-}" = snapshot ]; then
     machine=$(jq -r '.machineId // empty' "$state" 2>/dev/null || true)
     [ -n "$machine" ] || exit 0
     for marker in "$HOME"/.happier/tmp/daemon-sessions/pid-*.json; do
-        # Other relay profiles and non-Codex sessions are not ours to restore.
+        # Restore only the backends whose vendor resume path is verified here.
         if ! jq -e --arg machine "$machine" '
             .startedBy == "daemon" and .metadata.machineId == $machine and
-            (.respawn.backendTarget.agentId // .metadata.flavor) == "codex"
+            ((.respawn.backendTarget.agentId // .metadata.flavor) as $agent |
+                $agent == "codex" or $agent == "copilot")
         ' "$marker" >/dev/null 2>&1; then continue; fi
         session=$(jq -er '.happySessionId' "$marker")
         [[ "$session" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
@@ -51,12 +52,21 @@ for record in "$recovery"/*.json; do
         (.respawn // {}) + {
             directory: (.respawn.directory // .cwd),
             existingSessionId: .happySessionId,
-            backendTarget: {kind: "builtInAgent", agentId: "codex"},
-            codexBackendMode: (.respawn.codexBackendMode // "appServer"),
+            backendTarget: (.respawn.backendTarget //
+                {kind: "builtInAgent", agentId: .metadata.flavor}),
             approvedNewDirectoryCreation: false
         } |
-        if .vendorResumeId then .resume = .vendorResumeId else . end |
-        del(.version, .vendorResumeId, .spawnNonce, .terminal, .sessionId, .pendingFirstInput)
+        if .backendTarget.agentId == "codex" then
+            .codexBackendMode = (.codexBackendMode // "appServer") |
+            if .vendorResumeId then .resume = .vendorResumeId else . end
+        else
+            # ACP can update the native ID after the process marker was written.
+            # Let the daemon resolve it from current metadata for this original
+            # Happier session, rather than forcing a stale startup resume ID.
+            del(.codexBackendMode, .resume, .vendorResumeId)
+        end |
+        del(.version, .vendorResumeId, .spawnNonce, .terminal, .sessionId,
+            .pendingFirstInput, .initialPrompt, .prompt, .message)
     ' "$record")
     restored=false
     for attempt in {1..12}; do

@@ -19,21 +19,28 @@ export NO_PROXY="127.0.0.1,localhost,::1${NO_PROXY:+,$NO_PROXY}"
 export no_proxy="$NO_PROXY"
 export TMPDIR="$HOME/.cache/tmp"
 mkdir -p "$HOME/Source/Repos" "$TMPDIR"
-# Provider preflight can happen before a per-session profile is applied.
-source /opt/worker-tools/copilot-super-env.sh
 cd "$HOME/Source/Repos"
 
 # Explicit commands (for maintenance) run with the same home and user as sessions.
-if [ "$#" -gt 0 ]; then
-    worker-configure-copilot
-    exec "$@"
-fi
+if [ "$#" -gt 0 ]; then exec "$@"; fi
 
 # Even auth status may clean stale daemon state: save recovery evidence first.
 mkdir -p "$HOME/.worker"
 exec 9> "$HOME/.worker/container.lock"
 flock -n 9 || { echo 'Another worker owns this home directory.' >&2; exit 1; }
-worker-configure-copilot
+# Keep the existing profile entry point, using the image-managed Copilot binary.
+mkdir -p "$HOME/.local/bin" "$COPILOT_HOME"
+legacy_launcher=$(printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+    'exec /home/anduin/.local/bin/copilot --effort=xhigh --max-autopilot-continues=20 --no-auto-update "$@"')
+launcher="$HOME/.local/bin/copilot-cici-super-happier"
+if [ ! -e "$launcher" ] || { [ ! -L "$launcher" ] && [ "$(cat "$launcher")" = "$legacy_launcher" ]; }; then
+    printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+        'exec /opt/worker-tools/bin/copilot --effort=xhigh --max-autopilot-continues=20 --no-auto-update "$@"' > "$launcher"
+    chmod 0700 "$launcher"
+fi
+if [ ! -e "$COPILOT_HOME/settings.json" ]; then
+    printf '%s\n' '{"effortLevel":"xhigh","showReasoning":true,"autoUpdate":false}' > "$COPILOT_HOME/settings.json"
+fi
 worker-recover prepare
 runtime_dir=${WORKER_RUNTIME_DIR:-/tmp/worker}
 mkdir -p "$runtime_dir"
@@ -78,7 +85,7 @@ done
 rm -f "$request_file" "$runtime_dir/pairing"
 trap - EXIT
 echo 'Starting Happier worker daemon in the foreground.'
-echo 'Use a configured backend profile or complete provider authentication before starting coding tasks.'
+echo 'Complete Codex authentication on this machine before starting coding tasks.'
 happier daemon start-sync &
 daemon_pid=$!
 setsid worker-recover restore &

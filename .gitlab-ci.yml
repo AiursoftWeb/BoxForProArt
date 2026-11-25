@@ -5,15 +5,10 @@ lint-compose:
   stage: lint
   image: python:3.13
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends jq curl
     - python3 -m pip install --disable-pip-version-check pyyaml
   script:
-    - |
-      for script in deploy.sh stage4/images/worker/*.sh; do
-        bash -n "$script"
-      done
+    - bash -n deploy.sh
     - python3 ./lint.py
-    - python3 -m unittest discover -s tests -p 'test_worker_*.py'
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

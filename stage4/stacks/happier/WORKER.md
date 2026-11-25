@@ -1,6 +1,6 @@
 # Always-on Happier worker
 
-`happier_worker` runs coding backends on ProArt, using the development tools from
+`happier_worker` runs Codex on ProArt, using the development tools from
 `localhost:8080/box_starting/local_runner:latest`. In Happier it appears as
 **proart-worker**. Your laptop can be off: the browser talks to the relay, which
 talks to this worker. ProArt, its internet connection and the model provider must
@@ -26,8 +26,7 @@ selects which stacks to deploy.
 
 Images are built and pushed to the existing bootstrap registry; the public image
 puller needs no new image entry. Worker inherits runner, and installs pinned
-stable npm releases (`@happier-dev/cli` 0.2.21, `@openai/codex` 0.170.0 and
-`@github/copilot` 1.0.116) while
+stable npm releases (`@happier-dev/cli` 0.2.21 and `@openai/codex` 0.170.0) while
 building, using runner's npm registry configuration. No packages are downloaded
 during normal container startup.
 
@@ -141,54 +140,6 @@ sessions in Happier. Its managed ACP server and credentials live in the
 persistent home. Happier 0.2.17 admits Antigravity's negotiated session modes,
 fixing the `Agent-native selection is invalid` launch error from 0.2.16.
 
-## Cici on dual DGX Spark (Copilot)
-
-Copilot is installed in `/opt/worker-tools/bin`, ahead of home-installed tools.
-The image also owns `/opt/worker-tools/copilot-cici-super-happier`. Shared
-defaults are sourced before the worker daemon starts and by this entry point,
-so provider preflight and profile-based launches use the same persistent
-`COPILOT_HOME`. These defaults select the `aiursoft-super:latest` Gateway model over HTTP Responses,
-enables vision and the explicit streamed-reasoning compatibility header, keeps
-reasoning when resuming, and reserves 491520 input / 32768 output tokens. It
-passes `--effort=xhigh`, `--max-autopilot-continues=20` and `--no-auto-update` to
-the pinned CLI. Other backends keep their own configuration.
-
-In Happier, enable Profiles and create a Copilot-compatible profile named
-**Cici · DGX Spark**. Set `HAPPIER_COPILOT_PATH` to
-`/opt/worker-tools/copilot-cici-super-happier`; the other non-secret values have
-defaults in the launcher and may be overridden in the profile. Select
-`aiursoft-super:latest` and **Autopilot** when creating a session.
-
-The SDK's default credential command reads a profile-provided
-`COPILOT_PROVIDER_BEARER_TOKEN` or `COPILOT_PROVIDER_API_KEY` first, then Cici's
-existing `$HOME/.config/cici/ollama-api-key`. A profile can also supply its own
-`COPILOT_PROVIDER_API_KEY_COMMAND`. Provision the private file at runtime with mode
-0600, or bind a Gateway key through Happier's secret vault. No API key or
-Happier account credential is included in the image.
-
-Each startup, including with an already initialized home, fills missing files
-under `~/.copilot-cici-super` with the versioned settings and Cici instruction
-pointer. Existing settings, instructions, native sessions and keys are preserved.
-Native session directories left in the old `~/.copilot/session-state` are
-imported into the dedicated home if their IDs are missing there, so old Happier
-resume IDs remain usable. Existing destination sessions and legacy credentials
-are not overwritten or imported.
-The old home-based Happier entry path
-`~/.local/bin/copilot-cici-super-happier` is created as a compatibility symlink.
-The previously provisioned default wrapper is migrated to that symlink; a custom
-launcher is preserved with a diagnostic. Existing profiles can keep their path,
-while the executable and CLI version follow the rebuilt image.
-
-| State | Owner and persistence |
-| --- | --- |
-| Copilot CLI, launcher, default seeds | Worker image, rebuilt from this repository |
-| Copilot settings, session history, Cici key | Persistent worker home |
-| Profiles, profile enablement, encrypted account settings | Persistent Happier relay data |
-
-Replacing the container retains the home and relay settings. A genuinely empty
-home still requires machine pairing and a runtime Gateway credential; the image
-does not recreate private credentials or edit account profiles automatically.
-
 `anduin` has passwordless sudo **inside this container**. System packages installed
 at runtime outside the home disappear when the container is replaced; add required
 system packages to the Dockerfile. Docker CLI is inherited, but no Docker engine
@@ -219,18 +170,14 @@ Before relying on the worker while travelling:
 5. Confirm the same machine identity returns, projects and authentication remain,
    and you can resume the old conversation from the web UI and create a new one.
 
-At startup, `worker-recover` saves the previous daemon's Codex and Copilot session markers
+At startup, `worker-recover` saves the previous daemon's Codex session markers
 before Happier can clean them up. Recovery records live in
 `/home/anduin/.worker/recovery/<relay-profile>/`. It then removes stale daemon
 PID/port state: a PID reused by the new container must not block startup.
 Credentials, machine identity and transcripts are preserved.
 
 Once the daemon starts, the helper asks its authenticated local API to restore
-each original Happier session ID and workspace. Each backend resumes its stored
-vendor session, preserving the saved launch profile and environment.
-For Copilot, the daemon resolves the current native ID from the original
-Happier session's metadata; startup resume IDs in old process markers are not
-forced onto a session whose native identity has since changed.
+each original Happier session ID and workspace. Codex resumes its stored thread.
 It does not create replacement conversations or inject a continuation prompt.
 Already queued user messages can run after restoration; otherwise send a message
 to continue. This integration uses the local API and session markers of the pinned
@@ -251,20 +198,7 @@ survive replacement. An interrupted shell process cannot continue at its exact
 instruction; Codex must inspect saved progress and decide the next action. Never
 assume an external operation did not complete just because its reply was lost.
 
-### Copilot checks on 2026-11-25
-
-The full worker image was built on MS. Isolated containers checked an empty home,
-an initialized home with custom settings and legacy native history, and a second
-container using that same home. The pinned CLI, ACP model/mode selection, managed
-launcher migration, history import and runtime-key preservation passed.
-
-A separate real Copilot session on the deployed worker was stopped and restored
-under its original Happier ID. After restoring its native history and resolving
-the current native ID, it recalled a conversation-only nonce without using tools;
-the initial shell checkpoint remained a single line. The production worker
-container was not replaced for this check.
-
-### Codex checks on 2026-10-15
+### Tested on 2026-10-15
 
 Isolated tests used real Happier 0.2.16 and Codex 0.162.1 binaries, a separate relay
 and test account, and a deterministic local Responses endpoint. During an actual
@@ -289,7 +223,7 @@ do not update this worker's CLI. For image smoke checks on ProArt:
 ```bash
 sudo docker run --rm --network none --tmpfs /home/anduin:rw,exec \
   localhost:8080/box_starting/local_worker:latest bash -ec \
-  'id; node --version; python3 --version; dotnet --version; dotnet tool list --global; cargo --version; rustc --version; happier --version; codex --version; copilot --version; copilot-cici-super-happier --version'
+  'id; node --version; python3 --version; dotnet --version; dotnet tool list --global; cargo --version; rustc --version; happier --version; codex --version'
 ```
 
 This checks a fresh home without pairing or touching the enrolled worker volume.

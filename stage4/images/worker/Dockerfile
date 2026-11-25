@@ -53,20 +53,27 @@ ENV HOME=/home/anduin \
     HAPPIER_WEBAPP_URL=https://happier.aiursoft.com \
     HAPPIER_PUBLIC_SERVER_URL=https://happier.aiursoft.com \
     HAPPIER_CLI_UPDATE_CHECK=0 \
+    HAPPIER_COPILOT_PATH=/home/anduin/.local/bin/copilot-cici-super-happier \
+    COPILOT_HOME=/home/anduin/.copilot-cici-super \
+    COPILOT_OFFLINE=true \
+    COPILOT_AUTO_UPDATE=false \
+    COPILOT_PROVIDER_TYPE=openai \
+    COPILOT_PROVIDER_BASE_URL=https://ollama.aiursoft.com/v1 \
+    COPILOT_PROVIDER_WIRE_API=responses \
+    COPILOT_PROVIDER_TRANSPORT=http \
+    COPILOT_PROVIDER_VISION=true \
+    COPILOT_PROVIDER_HEADERS="X-OllamaGateway-Responses-Compatibility: reasoning-summary" \
+    COPILOT_PROVIDER_API_KEY_COMMAND="cat /home/anduin/.config/cici/ollama-api-key" \
+    COPILOT_MODEL=aiursoft-super:latest \
+    COPILOT_PROVIDER_MAX_PROMPT_TOKENS=491520 \
+    COPILOT_PROVIDER_MAX_OUTPUT_TOKENS=32768 \
+    COPILOT_STRIP_REASONING_ON_RESUME=false \
     NO_PROXY=127.0.0.1,localhost,::1 \
     no_proxy=127.0.0.1,localhost,::1
 
 COPY entry.sh /usr/local/bin/worker-entry
 COPY health.py /usr/local/bin/worker-health
 COPY recover.sh /usr/local/bin/worker-recover
-COPY configure-copilot.py /usr/local/bin/worker-configure-copilot
-COPY copilot-super.sh /opt/worker-tools/copilot-cici-super-happier
-COPY copilot-super-env.sh /opt/worker-tools/copilot-super-env.sh
-COPY copilot-provider-key.sh /opt/worker-tools/copilot-provider-key
-COPY copilot-home/ /opt/worker-copilot-home/
-RUN chmod 0755 /usr/local/bin/worker-entry /usr/local/bin/worker-health /usr/local/bin/worker-recover \
-    /usr/local/bin/worker-configure-copilot /opt/worker-tools/copilot-cici-super-happier \
-    /opt/worker-copilot-home /opt/worker-tools/copilot-provider-key && \
-    chmod 0644 /opt/worker-copilot-home/* /opt/worker-tools/copilot-super-env.sh
+RUN chmod 0755 /usr/local/bin/worker-entry /usr/local/bin/worker-health /usr/local/bin/worker-recover
 WORKDIR /home/anduin
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/worker-entry"]

@@ -1,73 +1,53 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-#==========================
-# Color
-#==========================
-export Green="\033[32m"
-export Red="\033[31m"
-export Yellow="\033[33m"
-export Blue="\033[36m"
-export Font="\033[0m"
-export GreenBG="\033[42;37m"
-export RedBG="\033[41;37m"
-export INFO="${Blue}[ INFO ]${Font}"
-export OK="${Green}[  OK  ]${Font}"
-export ERROR="${Red}[FAILED]${Font}"
-export WARNING="${Yellow}[ WARN ]${Font}"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
-#==========================
-# Argument Parsing
-#==========================
-STACK_FILTER=""
 TARGET_STAGE=0
+STACK_FILTER=
+# The full sites also use an unmatched stage-4 filter for infrastructure-only runs.
+ALLOW_INFRA_ONLY=1
 
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --filter)
-      if [[ -n "${2:-}" ]]; then
-        STACK_FILTER="$2"
-        echo -e "${Green}[  OK  ]${Font} ${Blue} Running with filter, will only deploy stacks containing: '$STACK_FILTER'${Font}"
-        shift 2
-      else
-         echo -e "${ERROR} ${Red} --filter requires a non-empty argument.${Font}"
-         exit 1
-      fi
-      ;;
-    --stage)
-      if [[ -n "${2:-}" ]] && [[ "$2" =~ ^[0-4]$ ]]; then
-        TARGET_STAGE="$2"
-        echo -e "${Green}[  OK  ]${Font} ${Blue} Running starting from stage: $TARGET_STAGE${Font}"
-        shift 2
-      else
-        echo -e "${ERROR} ${Red} --stage requires an integer argument (0-4).${Font}"
-        exit 1
-      fi
-      ;;
-    *)
-      echo -e "${WARNING} ${Yellow} Unknown argument: $1${Font}"
-      shift
-      ;;
-  esac
+print_info() { printf '\033[36m[ INFO ]\033[0m %s\n' "$*"; }
+print_ok() { printf '\033[32m[  OK  ]\033[0m %s\n' "$*"; }
+print_warn() { printf '\033[33m[ WARN ]\033[0m %s\n' "$*"; }
+print_error() { printf '\033[31m[FAILED]\033[0m %s\n' "$*" >&2; }
+fail() { print_error "$@"; exit 1; }
+
+while (( $# )); do
+    case "$1" in
+        --stage)
+            [[ "${2:-}" =~ ^[0-4]$ ]] || fail '--stage requires an integer from 0 to 4.'
+            TARGET_STAGE=$2
+            shift 2
+            ;;
+        --filter)
+            [[ -n "${2:-}" && $2 != --* ]] || fail '--filter requires a stack-name substring.'
+            STACK_FILTER=$2
+            shift 2
+            ;;
+        -h|--help)
+            printf '%s\n' 'Usage: deploy.sh [--stage 0..4] [--filter <stage-4 stack name substring>]'
+            exit 0
+            ;;
+        *) fail "Unknown option: $1" ;;
+    esac
 done
 
-#==========================
-# Print Colorful Text
-#==========================
-function print_ok() {
-  echo -e "${OK} ${Blue} $1 ${Font}"
-}
-
-function print_info() {
-  echo -e "${INFO} ${Font} $1"
-}
-
-function print_error() {
-  echo -e "${ERROR} ${Red} $1 ${Font}"
-}
-
-function print_warn() {
-  echo -e "${WARNING} ${Yellow} $1 ${Font}"
-}
+STAGE4_STACKS=()
+for compose_file in stage4/stacks/*/docker-compose.yml; do
+    [[ -f "$compose_file" ]] || continue
+    stack_dir=${compose_file%/*}
+    stack_name=${stack_dir##*/}
+    if [[ "$stack_name" == *"$STACK_FILTER"* ]]; then
+        STAGE4_STACKS+=("$stack_name")
+    fi
+done
+if (( ${#STAGE4_STACKS[@]} == 0 )); then
+    if [[ -z "$STACK_FILTER" ]] || (( TARGET_STAGE == 4 || ! ALLOW_INFRA_ONLY )); then
+        fail "No stage-4 stack matched the filter '$STACK_FILTER'."
+    fi
+    print_info "No stage-4 stack matched '$STACK_FILTER'; running infrastructure and shared preparation only."
+fi
 
 function judge() {
   if [[ 0 -eq $? ]]; then
@@ -757,21 +737,10 @@ judge "Copying ClickHouse config override file"
 print_ok "Deploying business stacks..."
 serviceCount=$(sudo docker service ls --format '{{.Name}}' | wc -l | awk '{print $1}')
 
-find ./stage4 -name 'docker-compose.yml' -print0 | while IFS= read -r -d '' file; do
-    # Extract the stack name from the file path (e.g., ./stage4/gitlab/docker-compose.yml -> gitlab)
-    stack_name=$(basename "$(dirname "$file")")
-
-    # Check if a filter is active, and if the stack name matches the filter
-    if [ -z "$STACK_FILTER" ] || [[ "$stack_name" == *"$STACK_FILTER"* ]]; then
-        print_ok "Deploying stack: $stack_name"
-        deploy "$file" "$stack_name"
-
-        # If it's a new cluster, slow down the deployment to avoid overwhelming the system
-        if [ $serviceCount -lt 10 ]; then
-            sleep 10
-        fi
-    else
-        print_info "Skipping stack '$stack_name' due to filter."
+for stack_name in "${STAGE4_STACKS[@]}"; do
+    deploy "stage4/stacks/$stack_name/docker-compose.yml" "$stack_name"
+    if (( serviceCount < 10 )); then
+        sleep 10
     fi
 done
 fi

@@ -4,7 +4,7 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
 TARGET_STAGE=0
 STACK_FILTER=
-# The full sites also use an unmatched stage-4 filter for infrastructure-only runs.
+# Allow an early starting stage to run infrastructure with an intentionally unmatched filter.
 ALLOW_INFRA_ONLY=1
 
 print_info() { printf '\033[36m[ INFO ]\033[0m %s\n' "$*"; }
@@ -49,6 +49,62 @@ if (( ${#STAGE4_STACKS[@]} == 0 )); then
     print_info "No stage-4 stack matched '$STACK_FILTER'; running infrastructure and shared preparation only."
 fi
 
+DOCKER=(sudo docker)
+STACK_OPTIONS=(--prune --with-registry-auth)
+
+ENV_FILE=
+if [[ -f .env.prod ]]; then
+    ENV_FILE=.env.prod
+elif [[ -f .env ]]; then
+    ENV_FILE=.env
+fi
+
+get_env_value() {
+    local key=$1 line
+    [[ -n "$ENV_FILE" ]] || fail "No environment file found for $key."
+    line=$(grep -m1 -E "^${key}=" "$ENV_FILE" || true)
+    [[ -n "$line" && -n "${line#*=}" ]] || fail "'$key' is missing or empty in $ENV_FILE."
+    printf '%s' "${line#*=}"
+}
+
+render_compose() {
+    local template=$1 line key value
+    if [[ -z "$ENV_FILE" ]]; then
+        cat -- "$template"
+        return
+    fi
+    # Feed sed the replacements on stdin so credentials stay out of process arguments.
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" == *=* && "$line" != \#* ]] || continue
+        key=${line%%=*}
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+        value=${line#*=}
+        value=${value//\\/\\\\}
+        value=${value//&/\\&}
+        value=${value//\//\\/}
+        printf 's/{{%s}}/%s/g\n' "$key" "$value"
+    done < "$ENV_FILE" | sed -f - "$template"
+}
+
+deploy_stack() {
+    local template=$1 stack_name=$2 resolve=$3 compose
+    shift 3
+    # Render completely before Docker sees the stack. The marker preserves trailing YAML newlines.
+    compose=$(render_compose "$template" "$@" && printf '.') || return 1
+    print_info "Deploying stack '$stack_name'."
+    printf '%s' "${compose%.}" |
+        "${DOCKER[@]}" stack deploy --compose-file - --detach "${STACK_OPTIONS[@]}" --resolve-image "$resolve" "$stack_name"
+}
+
+ensure_overlay_network() {
+    local name=$1
+    shift
+    if ! "${DOCKER[@]}" network inspect "$name" >/dev/null 2>&1; then
+        print_info "Creating overlay network '$name'."
+        "${DOCKER[@]}" network create --driver overlay --attachable --scope swarm "$@" "$name" >/dev/null
+    fi
+}
+
 function judge() {
   if [[ 0 -eq $? ]]; then
     print_ok "$1 succeeded"
@@ -57,36 +113,6 @@ function judge() {
     print_error "$1 failed"
     exit 1
   fi
-}
-
-# Determine which env file to use
-if [ -f ".env.prod" ]; then
-    ENV_FILE=".env.prod"
-    print_ok "Using .env.prod for configuration."
-elif [ -f ".env" ]; then
-    ENV_FILE=".env"
-    print_warn "Using .env for configuration."
-else
-    ENV_FILE=""
-    print_ok "No .env or .env.prod file found. Proceeding without variable substitution."
-fi
-
-function get_env_value() {
-    local key=$1
-    local line
-
-    if [ -z "$ENV_FILE" ]; then
-        print_error "No environment file found. '$key' is required." >&2
-        exit 1
-    fi
-
-    line=$(grep -m1 -E "^${key}=" "$ENV_FILE" || true)
-    if [ -z "$line" ] || [ -z "${line#*=}" ]; then
-        print_error "'$key' is missing or empty in $ENV_FILE." >&2
-        exit 1
-    fi
-
-    printf '%s' "${line#*=}"
 }
 
 function login_to_hub() {
@@ -266,48 +292,6 @@ function create_secret() {
     fi
 }
 
-function create_network() {
-    network_name=$1
-    subnet=$2
-    known_networks=$(sudo docker network ls --format '{{.Name}}')
-    if ! echo "$known_networks" | grep -Fx "$network_name" >/dev/null; then
-        print_warn "Creating network $network_name with subnet $subnet and MTU 1400..."
-        networkId=$(sudo docker network create \
-            --driver overlay \
-            --attachable \
-            --subnet $subnet \
-            --opt com.docker.network.driver.mtu=1400 \
-            --scope swarm $network_name)
-        print_ok "Network $network_name created with id $networkId"
-    fi
-}
-
-function deploy() {
-    local original_compose_file=$1
-    local stack_name=$2
-    local temp_compose_file=$(mktemp)
-
-    # Always copy to a temporary file to avoid modifying the original
-    cp "$original_compose_file" "$temp_compose_file"
-
-    # If an environment file is found, perform substitutions
-    if [ -n "$ENV_FILE" ]; then
-        # Read non-empty, non-comment lines from the env file
-        grep -v -e '^#' -e '^$' "$ENV_FILE" | while IFS='=' read -r key value; do
-            # Escape slashes and ampersands for sed
-            escaped_value=$(printf '%s\n' "$value" | sed -e 's/[\/&]/\\&/g')
-            # Use a different delimiter for sed to handle special characters in values
-            sed -i "s/{{$key}}/$escaped_value/g" "$temp_compose_file"
-        done
-    fi
-
-    print_ok "Deploying stack '$stack_name' with compose file '$original_compose_file'..."
-    sudo docker stack deploy -c "$temp_compose_file" "$stack_name" --detach --prune --with-registry-auth
-
-    # Clean up the temporary file
-    rm "$temp_compose_file"
-}
-
 # Zot initializes OIDC during startup; an Authentik rollout can otherwise crash Zot
 # and pause its Swarm update (observed on Global on 2026-10-16).
 # Keep this guard identical across Boxes; only the persisted config path differs.
@@ -366,112 +350,111 @@ function wait_for_zot_oidc() {
     return 1
 }
 
-# Ensure packages needed are ready
-if [ "$TARGET_STAGE" -le 0 ]; then
-print_ok "Ensure packages needed are ready..."
-ensure_packages_needed_ready
+stage0() {
+    print_ok "Ensure packages needed are ready..."
+    ensure_packages_needed_ready
 
-# Ensure has Nvidia GPU and have installed nvidia-container-toolkit
-print_ok "Ensure has Nvidia GPU and have installed..."
-if [ -f /usr/bin/nvidia-smi ]; then
-    ensure_nvidia_gpu
-else
-    print_warn "Nvidia GPU not found. Skipping Nvidia GPU configuration. GPU pass-through will not be available."
-fi
-
-# Tuning for better performance
-print_ok "Tuning for better performance..."
-better_performance
-
-# Setup docker auto clean
-print_ok "Setting up docker auto clean..."
-setup_docker_auto_clean
-
-print_ok "Deleting zombie vxlan interfaces..."
-for interface in $(ip -d link show | grep vx | grep DOWN | awk -F': ' '{print $2}'); do
-  echo "Deleting zombie interface: $interface"
-  sudo ip link delete $interface
-done
-judge "Deleting zombie vxlan interfaces"
-
-print_ok "Creating secrets..."
-while IFS= read -r file; do
-  while IFS= read -r secret_name; do
-    if [ -n "$secret_name" ]; then
-      print_ok "Creating secret $secret_name..."
-      create_secret "$secret_name"
-    fi
-  done < <(yq eval '.secrets | to_entries | .[] | select(.value.external == true) | .key' "$file")
-done < <(find ./stage* -name 'docker-compose.yml' -type f)
-
-print_ok "Creating networks..."
-subnet_third_octet=233
-external_networks=$(find ./stage* -name 'docker-compose.yml' -type f | xargs yq eval '.networks | to_entries | .[] | select(.value.external == true) | .key' 2>/dev/null | sort | uniq)
-for network in $external_networks; do
-  if [ "$network" == "---" ]; then
-    continue
-  fi
-  print_ok "Ensuring network $network exists..."
-  create_network "$network" "10.${subnet_third_octet}.0.0/16"
-  subnet_third_octet=$((subnet_third_octet + 1))
-done
-
-print_ok "Creating data folders..."
-sudo mkdir -p /swarm-vol/docker-data /swarm-vol/containerd-data
-
-find . -name 'docker-compose.yml' | while read file; do
-  awk '{if(/device:/) print $2}' "$file" | while read -r path; do
-    if [ ! -d "$path" ]; then
-        print_info "Creating directory: $path"
-        sudo mkdir -p "$path"
+    # Ensure has Nvidia GPU and have installed nvidia-container-toolkit
+    print_ok "Ensure has Nvidia GPU and have installed..."
+    if [ -f /usr/bin/nvidia-smi ]; then
+        ensure_nvidia_gpu
     else
-        : # no-op
+        print_warn "Nvidia GPU not found. Skipping Nvidia GPU configuration. GPU pass-through will not be available."
     fi
-  done
-done
 
-#=============================
-# Docker Daemon Configuration
-#=============================
-print_ok "Configuring docker daemon..."
+    # Tuning for better performance
+    print_ok "Tuning for better performance..."
+    better_performance
 
-if [ ! -f /etc/containerd/config.toml ]; then
-    sudo mkdir -p /etc/containerd
-    sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
-fi
-old_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
-sudo sed -i 's|^#\?root = .*|root = "/swarm-vol/containerd-data"|' /etc/containerd/config.toml
+    # Setup docker auto clean
+    print_ok "Setting up docker auto clean..."
+    setup_docker_auto_clean
 
-if [ -f /etc/docker/daemon.json ]; then
-    old_hash_daemon=$(sudo jq -cS . /etc/docker/daemon.json | sha256sum | awk '{print $1}')
-else
-    old_hash_daemon=""
-fi
+    print_ok "Deleting zombie vxlan interfaces..."
+    for interface in $(ip -d link show | grep vx | grep DOWN | awk -F': ' '{print $2}'); do
+      echo "Deleting zombie interface: $interface"
+      sudo ip link delete $interface
+    done
+    judge "Deleting zombie vxlan interfaces"
 
-if [ -f /etc/nvidia-container-runtime/config.toml ]; then
-    old_hash_nvidia=$(sha256sum /etc/nvidia-container-runtime/config.toml | awk '{print $1}')
-else
-    old_hash_nvidia=""
-fi
+    print_ok "Creating secrets..."
+    while IFS= read -r file; do
+      while IFS= read -r secret_name; do
+        if [ -n "$secret_name" ]; then
+          print_ok "Creating secret $secret_name..."
+          create_secret "$secret_name"
+        fi
+      done < <(yq eval '.secrets | to_entries | .[] | select(.value.external == true) | .key' "$file")
+    done < <(find ./stage* -name 'docker-compose.yml' -type f)
 
-docker_bridge_setting=""
-if [ -f /etc/docker/daemon.json ]; then
-    docker_bridge_setting=$(sudo jq -r 'if .bip then "\"bip\": \(.bip | tojson)," else "" end' /etc/docker/daemon.json)
-fi
+    print_ok "Creating networks..."
+    subnet_third_octet=233
+    external_networks=$(find ./stage* -name 'docker-compose.yml' -type f | xargs yq eval '.networks | to_entries | .[] | select(.value.external == true) | .key' 2>/dev/null | sort | uniq)
+    for network in $external_networks; do
+      if [ "$network" == "---" ]; then
+        continue
+      fi
+      print_ok "Ensuring network $network exists..."
+      ensure_overlay_network "$network" --subnet "10.${subnet_third_octet}.0.0/16" --opt com.docker.network.driver.mtu=1400
+      subnet_third_octet=$((subnet_third_octet + 1))
+    done
 
-if [ -f /usr/bin/nvidia-smi ]; then
-  print_ok "Nvidia GPU detected. Configuring for Nvidia..."
-  raw_gpu_output=$(valgrind /usr/bin/nvidia-smi -a 2> /dev/null || true)
-  GPU_IDS=$(echo "$raw_gpu_output" | grep "GPU UUID" | awk '{print substr($4,5,36)}' || true)
-  print_ok "Detected GPU UUIDs:"
-  print_ok "$GPU_IDS"
-  JSON_GPU_RESOURCES=""
-  for ID in $GPU_IDS; do
-      JSON_GPU_RESOURCES+="\"NVIDIA-GPU=$ID\","
-  done
-  JSON_GPU_RESOURCES=${JSON_GPU_RESOURCES%,}  # Remove trailing comma
+    print_ok "Creating data folders..."
+    sudo mkdir -p /swarm-vol/docker-data /swarm-vol/containerd-data
 
-  sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+    find . -name 'docker-compose.yml' | while read file; do
+      awk '{if(/device:/) print $2}' "$file" | while read -r path; do
+        if [ ! -d "$path" ]; then
+            print_info "Creating directory: $path"
+            sudo mkdir -p "$path"
+        else
+            : # no-op
+        fi
+      done
+    done
+
+    #=============================
+    # Docker Daemon Configuration
+    #=============================
+    print_ok "Configuring docker daemon..."
+
+    if [ ! -f /etc/containerd/config.toml ]; then
+        sudo mkdir -p /etc/containerd
+        sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+    fi
+    old_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
+    sudo sed -i 's|^#\?root = .*|root = "/swarm-vol/containerd-data"|' /etc/containerd/config.toml
+
+    if [ -f /etc/docker/daemon.json ]; then
+        old_hash_daemon=$(sudo jq -cS . /etc/docker/daemon.json | sha256sum | awk '{print $1}')
+    else
+        old_hash_daemon=""
+    fi
+
+    if [ -f /etc/nvidia-container-runtime/config.toml ]; then
+        old_hash_nvidia=$(sha256sum /etc/nvidia-container-runtime/config.toml | awk '{print $1}')
+    else
+        old_hash_nvidia=""
+    fi
+
+    docker_bridge_setting=""
+    if [ -f /etc/docker/daemon.json ]; then
+        docker_bridge_setting=$(sudo jq -r 'if .bip then "\"bip\": \(.bip | tojson)," else "" end' /etc/docker/daemon.json)
+    fi
+
+    if [ -f /usr/bin/nvidia-smi ]; then
+      print_ok "Nvidia GPU detected. Configuring for Nvidia..."
+      raw_gpu_output=$(valgrind /usr/bin/nvidia-smi -a 2> /dev/null || true)
+      GPU_IDS=$(echo "$raw_gpu_output" | grep "GPU UUID" | awk '{print substr($4,5,36)}' || true)
+      print_ok "Detected GPU UUIDs:"
+      print_ok "$GPU_IDS"
+      JSON_GPU_RESOURCES=""
+      for ID in $GPU_IDS; do
+          JSON_GPU_RESOURCES+="\"NVIDIA-GPU=$ID\","
+      done
+      JSON_GPU_RESOURCES=${JSON_GPU_RESOURCES%,}  # Remove trailing comma
+
+      sudo tee /etc/docker/daemon.json > /dev/null <<EOF
 {
   "mtu": 1400,
   "data-root": "/swarm-vol/docker-data",
@@ -505,12 +488,12 @@ if [ -f /usr/bin/nvidia-smi ]; then
 }
 EOF
 
-  sudo sed -i 's/#swarm-resource = "DOCKER_RESOURCE_GPU"/swarm-resource = "DOCKER_RESOURCE_GPU"/' /etc/nvidia-container-runtime/config.toml
+      sudo sed -i 's/#swarm-resource = "DOCKER_RESOURCE_GPU"/swarm-resource = "DOCKER_RESOURCE_GPU"/' /etc/nvidia-container-runtime/config.toml
 
-else
-  print_warn "Nvidia GPU not found. Configuring standard docker daemon..."
-  
-  sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+    else
+      print_warn "Nvidia GPU not found. Configuring standard docker daemon..."
+
+      sudo tee /etc/docker/daemon.json > /dev/null <<EOF
 {
   "mtu": 1400,
   "data-root": "/swarm-vol/docker-data",
@@ -533,214 +516,209 @@ else
   }
 }
 EOF
-fi
-
-new_hash_daemon=$(sudo jq -cS . /etc/docker/daemon.json | sha256sum | awk '{print $1}')
-if [ -f /etc/nvidia-container-runtime/config.toml ]; then
-    new_hash_nvidia=$(sha256sum /etc/nvidia-container-runtime/config.toml | awk '{print $1}')
-else
-    new_hash_nvidia=""
-fi
-
-new_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
-if [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
-    print_warn "Containerd configuration changed. Restarting containerd service..."
-    sudo systemctl restart containerd.service
-fi
-
-if [ "$old_hash_daemon" != "$new_hash_daemon" ] || [ "$old_hash_nvidia" != "$new_hash_nvidia" ] || [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
-    print_warn "Configuration files changed. Restarting docker service..."
-    sudo systemctl restart docker.service
-else
-    print_ok "Configuration files not changed."
-fi
-#=============================
-# Docker Daemon Configuration End
-#=============================
-
-ensure_docker_network
-
-print_warn "=============================================================================="
-print_warn "   Starting stage 0: Mission is to start a simple registry"
-print_warn "=============================================================================="
-sleep 3
-
-login_to_hub "docker.io" "registry:3" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
-sudo docker compose -f ./stage0/registry/docker-compose.yml up -d --pull always --no-recreate --remove-orphans
-
-#deploy stage0/registry/docker-compose.yml registry # 8080
-
-print_ok "Make sure the registry is ready..."
-sleep 5 # Could not trust result in the first few seconds, because the old registry might still be running
-while curl -s http://localhost:8080/ > /dev/null; [ $? -ne 0 ]; do
-    print_warn "Waiting for registry(http://localhost:8080/) to start..."
-    sleep 1
-done
-
-print_warn "=============================================================================="
-print_warn "   Ending stage 0: Registry is ready at http://localhost:8080/"
-print_warn "=============================================================================="
-fi
-
-if [ "$TARGET_STAGE" -le 1 ]; then
-print_warn "=============================================================================="
-print_warn "   Starting stage 1: Mission is to mirror public images to the simple registry"
-print_warn "=============================================================================="
-sleep 3
-
-login_to_hub "docker.io" "ubuntu:26.04" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
-bash ./stage1/mirror.sh
-
-print_warn "=============================================================================="
-print_warn "   Ending stage 1: Images are mirrored."
-print_warn "=============================================================================="
-fi
-
-if [ "$TARGET_STAGE" -le 2 ]; then
-print_warn "=============================================================================="
-print_warn "   Starting stage 2: Mission is to build and start basic web infrastructure"
-print_warn "=============================================================================="
-sleep 3
-
-rm -rf ./stage2/images/sites/discovered
-mkdir -p ./stage2/images/sites/discovered && \
-    cp ./stage2/stacks/**/*.conf ./stage2/images/sites/discovered && \
-    cp ./stage3/stacks/**/*.conf ./stage2/images/sites/discovered && \
-    cp ./stage4/stacks/**/*.conf ./stage2/images/sites/discovered
-
-print_ok "Building local ubuntu..."
-sudo docker build ./stage2/images/ubuntu   -t localhost:8080/box_starting/local_ubuntu:latest
-sudo docker push localhost:8080/box_starting/local_ubuntu:latest
-print_ok "Building local frp..."
-sudo docker build ./stage2/images/frp      -t localhost:8080/box_starting/local_frp:latest
-sudo docker push localhost:8080/box_starting/local_frp:latest
-print_ok "Building local frp-monitor..."
-sudo docker build ./stage2/images/frp-monitor -t localhost:8080/box_starting/local_frp_monitor:latest
-sudo docker push localhost:8080/box_starting/local_frp_monitor:latest
-print_ok "Building local caddy..."
-sudo docker build ./stage2/images/sites    -t localhost:8080/box_starting/local_sites:latest
-sudo docker push localhost:8080/box_starting/local_sites:latest
-print_ok "Building local pysyncer..."
-sudo docker build ./stage2/images/pysyncer    -t localhost:8080/box_starting/local_pysyncer:latest
-sudo docker push localhost:8080/box_starting/local_pysyncer:latest
-
-print_ok "Cleaning old docker-compose.yml..."
-rm -f ./stage2/stacks/incoming/docker-compose.yml
-
-print_ok "Generating docker-compose.yml with auto-discovered domains..."
-bash ./stage2/stacks/incoming/generate_compose.sh
-judge "Generate docker-compose.yml"
-
-print_ok "Starting incoming proxy..."
-deploy stage2/stacks/incoming/docker-compose.yml incoming # 8080
-
-print_ok "Make sure the caddy is ready..."
-sleep 5 # Could not trust result in the first few seconds, because the old registry might still be running
-while [ "$(curl -s -o /dev/null -w "%{http_code}" https://test.aiursoft.com)" != "200" ]; do
-    print_warn "Waiting for caddy (https://test.aiursoft.com) to start... ETA: 25s"
-    sleep 1
-done
-
-print_warn "=============================================================================="
-print_warn "   Ending stage 2: Basic web infrastructure is ready."
-print_warn "=============================================================================="
-fi
-
-if [ "$TARGET_STAGE" -le 3 ]; then
-print_warn "=============================================================================="
-print_warn "   Starting stage 3: Mission is to build and start registries"
-print_warn "=============================================================================="
-sleep 3
-
-
-print_ok "Building local zot..."
-sudo docker build ./stage3/images/zot -t localhost:8080/box_starting/local_zot:latest
-sudo docker push localhost:8080/box_starting/local_zot:latest
-
-print_ok "Building local puller..."
-sudo docker build ./stage3/images/puller -t localhost:8080/box_starting/local_puller:latest
-sudo docker push localhost:8080/box_starting/local_puller:latest
-print_ok "Building local puller_cn..."
-sudo docker build ./stage3/images/puller_cn -t localhost:8080/box_starting/local_puller_cn:latest
-sudo docker push localhost:8080/box_starting/local_puller_cn:latest
-
-print_ok "Building local aptmirror..."
-sudo docker build ./stage3/images/aptmirror -t localhost:8080/box_starting/local_aptmirror:latest
-sudo docker push localhost:8080/box_starting/local_aptmirror:latest
-
-print_ok "Building local ppamirror..."
-sudo docker build ./stage3/images/ppamirror -t localhost:8080/box_starting/local_ppamirror:latest
-sudo docker push localhost:8080/box_starting/local_ppamirror:latest
-
-print_ok "Starting Zot, Puller, ppamirror..."
-wait_for_zot_oidc /swarm-vol/ssd/zot-data/config/config.json
-deploy stage3/stacks/zot/docker-compose.yml zot
-deploy stage3/stacks/puller/docker-compose.yml puller
-deploy stage3/stacks/aptmirror/docker-compose.yml aptmirror
-deploy stage3/stacks/ppamirror/docker-compose.yml ppamirror
-
-print_ok "Making sure the zot is ready..."
-sleep 5
-registry_host=$(get_env_value "REGISTRY_HOST")
-while [ "$(curl -s -o /dev/null -w "%{http_code}" "https://$registry_host")" != "200" ] || \
-      [ "$(curl -s -A 'docker/29.1.3' -o /dev/null -w "%{http_code}" "https://$registry_host/v2/")" != "401" ]; do
-    print_warn "Waiting for registry (https://$registry_host) to start... ETA: 25s"
-    sleep 1
-done
-
-print_warn "=============================================================================="
-print_warn "   Ending stage 3: Registries are ready."
-print_warn "=============================================================================="
-fi
-
-if [ "$TARGET_STAGE" -le 4 ]; then
-print_warn "=============================================================================="
-print_warn "   Starting stage 4: Mission is to deploy business stacks"
-print_warn "=============================================================================="
-sleep 3
-
-login_to_hub "$(get_env_value "REGISTRY_HOST")" "$(get_env_value "REGISTRY_VERIFICATION_IMAGE")"
-
-print_ok "Building local runner..."
-sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
-sudo docker push localhost:8080/box_starting/local_runner:latest
-
-print_ok "Building local worker..."
-sudo docker build --network=host ./stage4/images/worker -t localhost:8080/box_starting/local_worker:latest
-sudo docker push localhost:8080/box_starting/local_worker:latest
-
-print_ok "Building runner cleaner..."
-sudo docker build --network=host ./stage4/images/runner-cleaner -t localhost:8080/box_starting/local_runner_cleaner:latest
-sudo docker push localhost:8080/box_starting/local_runner_cleaner:latest
-
-print_ok "Building home power collector..."
-sudo docker build --network=host ./stage4/images/home-power-collector -t localhost:8080/box_starting/home_power_collector:latest
-sudo docker push localhost:8080/box_starting/home_power_collector:latest
-
-print_ok "Ensuring binfmt support for multi-arch builds..."
-if [ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
-    print_ok "QEMU binfmt already registered in kernel. Skipping."
-else
-    print_warn "QEMU binfmt not found. Registering via tonistiigi/binfmt..."
-    login_to_hub "docker.io" "tonistiigi/binfmt" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
-    sudo docker run --privileged --rm tonistiigi/binfmt --install all
-    print_ok "QEMU binfmt registered. Supported platforms:"
-    ls /proc/sys/fs/binfmt_misc/ | grep qemu || true
-fi
-
-# /swarm-vol/ssd/click-house/config_override.xml
-print_ok "Copying ClickHouse config override file..."
-sudo cp ./stage4/stacks/clickhouse/users_override.xml /swarm-vol/ssd/click-house/users_override.xml || true
-sudo cp ./stage4/stacks/clickhouse/config_override.xml /swarm-vol/ssd/click-house/config_override.xml || true
-judge "Copying ClickHouse config override file"
-
-print_ok "Deploying business stacks..."
-serviceCount=$(sudo docker service ls --format '{{.Name}}' | wc -l | awk '{print $1}')
-
-for stack_name in "${STAGE4_STACKS[@]}"; do
-    deploy "stage4/stacks/$stack_name/docker-compose.yml" "$stack_name"
-    if (( serviceCount < 10 )); then
-        sleep 10
     fi
-done
+
+    new_hash_daemon=$(sudo jq -cS . /etc/docker/daemon.json | sha256sum | awk '{print $1}')
+    if [ -f /etc/nvidia-container-runtime/config.toml ]; then
+        new_hash_nvidia=$(sha256sum /etc/nvidia-container-runtime/config.toml | awk '{print $1}')
+    else
+        new_hash_nvidia=""
+    fi
+
+    new_hash_containerd=$(sha256sum /etc/containerd/config.toml | awk '{print $1}')
+    if [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
+        print_warn "Containerd configuration changed. Restarting containerd service..."
+        sudo systemctl restart containerd.service
+    fi
+
+    if [ "$old_hash_daemon" != "$new_hash_daemon" ] || [ "$old_hash_nvidia" != "$new_hash_nvidia" ] || [ "$old_hash_containerd" != "$new_hash_containerd" ]; then
+        print_warn "Configuration files changed. Restarting docker service..."
+        sudo systemctl restart docker.service
+    else
+        print_ok "Configuration files not changed."
+    fi
+    #=============================
+    # Docker Daemon Configuration End
+    #=============================
+
+    ensure_docker_network
+
+    sleep 3
+
+    login_to_hub "docker.io" "registry:3" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
+    sudo docker compose -f ./stage0/registry/docker-compose.yml up -d --pull always --no-recreate --remove-orphans
+
+
+    print_ok "Make sure the registry is ready..."
+    sleep 5 # Could not trust result in the first few seconds, because the old registry might still be running
+    while curl -s http://localhost:8080/ > /dev/null; [ $? -ne 0 ]; do
+        print_warn "Waiting for registry(http://localhost:8080/) to start..."
+        sleep 1
+    done
+}
+
+stage1() {
+    sleep 3
+
+    login_to_hub "docker.io" "ubuntu:26.04" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
+    bash ./stage1/mirror.sh
+}
+
+stage2() {
+    sleep 3
+
+    rm -rf ./stage2/images/sites/discovered
+    mkdir -p ./stage2/images/sites/discovered && \
+        cp ./stage2/stacks/**/*.conf ./stage2/images/sites/discovered && \
+        cp ./stage3/stacks/**/*.conf ./stage2/images/sites/discovered && \
+        cp ./stage4/stacks/**/*.conf ./stage2/images/sites/discovered
+
+    print_ok "Building local ubuntu..."
+    sudo docker build ./stage2/images/ubuntu   -t localhost:8080/box_starting/local_ubuntu:latest
+    sudo docker push localhost:8080/box_starting/local_ubuntu:latest
+    print_ok "Building local frp..."
+    sudo docker build ./stage2/images/frp      -t localhost:8080/box_starting/local_frp:latest
+    sudo docker push localhost:8080/box_starting/local_frp:latest
+    print_ok "Building local frp-monitor..."
+    sudo docker build ./stage2/images/frp-monitor -t localhost:8080/box_starting/local_frp_monitor:latest
+    sudo docker push localhost:8080/box_starting/local_frp_monitor:latest
+    print_ok "Building local caddy..."
+    sudo docker build ./stage2/images/sites    -t localhost:8080/box_starting/local_sites:latest
+    sudo docker push localhost:8080/box_starting/local_sites:latest
+    print_ok "Building local pysyncer..."
+    sudo docker build ./stage2/images/pysyncer    -t localhost:8080/box_starting/local_pysyncer:latest
+    sudo docker push localhost:8080/box_starting/local_pysyncer:latest
+
+    print_ok "Cleaning old docker-compose.yml..."
+    rm -f ./stage2/stacks/incoming/docker-compose.yml
+
+    print_ok "Generating docker-compose.yml with auto-discovered domains..."
+    bash ./stage2/stacks/incoming/generate_compose.sh
+    judge "Generate docker-compose.yml"
+
+    print_ok "Starting incoming proxy..."
+    deploy_stack stage2/stacks/incoming/docker-compose.yml incoming always
+
+    print_ok "Make sure the caddy is ready..."
+    sleep 5 # Could not trust result in the first few seconds, because the old registry might still be running
+    while [ "$(curl -s -o /dev/null -w "%{http_code}" https://test.aiursoft.com)" != "200" ]; do
+        print_warn "Waiting for caddy (https://test.aiursoft.com) to start... ETA: 25s"
+        sleep 1
+    done
+}
+
+stage3() {
+    sleep 3
+
+
+    print_ok "Building local zot..."
+    sudo docker build ./stage3/images/zot -t localhost:8080/box_starting/local_zot:latest
+    sudo docker push localhost:8080/box_starting/local_zot:latest
+
+    print_ok "Building local puller..."
+    sudo docker build ./stage3/images/puller -t localhost:8080/box_starting/local_puller:latest
+    sudo docker push localhost:8080/box_starting/local_puller:latest
+    print_ok "Building local puller_cn..."
+    sudo docker build ./stage3/images/puller_cn -t localhost:8080/box_starting/local_puller_cn:latest
+    sudo docker push localhost:8080/box_starting/local_puller_cn:latest
+
+    print_ok "Building local aptmirror..."
+    sudo docker build ./stage3/images/aptmirror -t localhost:8080/box_starting/local_aptmirror:latest
+    sudo docker push localhost:8080/box_starting/local_aptmirror:latest
+
+    print_ok "Building local ppamirror..."
+    sudo docker build ./stage3/images/ppamirror -t localhost:8080/box_starting/local_ppamirror:latest
+    sudo docker push localhost:8080/box_starting/local_ppamirror:latest
+
+    print_ok "Starting Zot, Puller, ppamirror..."
+    wait_for_zot_oidc /swarm-vol/ssd/zot-data/config/config.json
+    deploy_stack stage3/stacks/zot/docker-compose.yml zot always
+    deploy_stack stage3/stacks/puller/docker-compose.yml puller always
+    deploy_stack stage3/stacks/aptmirror/docker-compose.yml aptmirror always
+    deploy_stack stage3/stacks/ppamirror/docker-compose.yml ppamirror always
+
+    print_ok "Making sure the zot is ready..."
+    sleep 5
+    registry_host=$(get_env_value "REGISTRY_HOST")
+    while [ "$(curl -s -o /dev/null -w "%{http_code}" "https://$registry_host")" != "200" ] || \
+          [ "$(curl -s -A 'docker/29.1.3' -o /dev/null -w "%{http_code}" "https://$registry_host/v2/")" != "401" ]; do
+        print_warn "Waiting for registry (https://$registry_host) to start... ETA: 25s"
+        sleep 1
+    done
+}
+
+prepare_business_stacks() {
+    sleep 3
+
+    login_to_hub "$(get_env_value "REGISTRY_HOST")" "$(get_env_value "REGISTRY_VERIFICATION_IMAGE")"
+
+    print_ok "Building local runner..."
+    sudo docker build --network=host ./stage4/images/runner -t localhost:8080/box_starting/local_runner:latest
+    sudo docker push localhost:8080/box_starting/local_runner:latest
+
+    print_ok "Building local worker..."
+    sudo docker build --network=host ./stage4/images/worker -t localhost:8080/box_starting/local_worker:latest
+    sudo docker push localhost:8080/box_starting/local_worker:latest
+
+    print_ok "Building runner cleaner..."
+    sudo docker build --network=host ./stage4/images/runner-cleaner -t localhost:8080/box_starting/local_runner_cleaner:latest
+    sudo docker push localhost:8080/box_starting/local_runner_cleaner:latest
+
+    print_ok "Building home power collector..."
+    sudo docker build --network=host ./stage4/images/home-power-collector -t localhost:8080/box_starting/home_power_collector:latest
+    sudo docker push localhost:8080/box_starting/home_power_collector:latest
+
+    print_ok "Ensuring binfmt support for multi-arch builds..."
+    if [ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+        print_ok "QEMU binfmt already registered in kernel. Skipping."
+    else
+        print_warn "QEMU binfmt not found. Registering via tonistiigi/binfmt..."
+        login_to_hub "docker.io" "tonistiigi/binfmt" "PUBLIC_DOCKER_HUB_USERNAME" "PUBLIC_DOCKER_HUB_PASSWORD"
+        sudo docker run --privileged --rm tonistiigi/binfmt --install all
+        print_ok "QEMU binfmt registered. Supported platforms:"
+        ls /proc/sys/fs/binfmt_misc/ | grep qemu || true
+    fi
+
+    # /swarm-vol/ssd/click-house/config_override.xml
+    print_ok "Copying ClickHouse config override file..."
+    sudo cp ./stage4/stacks/clickhouse/users_override.xml /swarm-vol/ssd/click-house/users_override.xml || true
+    sudo cp ./stage4/stacks/clickhouse/config_override.xml /swarm-vol/ssd/click-house/config_override.xml || true
+    judge "Copying ClickHouse config override file"
+
+    print_ok "Deploying business stacks..."
+    service_count=$(sudo docker service ls --format '{{.Name}}' | wc -l | awk '{print $1}')
+}
+
+stage4() {
+    local stack_name
+    prepare_business_stacks
+    for stack_name in "${STAGE4_STACKS[@]}"; do
+        deploy_stack "stage4/stacks/$stack_name/docker-compose.yml" "$stack_name" always
+        if (( service_count < 10 )); then
+            sleep 10
+        fi
+    done
+}
+
+if (( TARGET_STAGE <= 0 )); then
+    print_info "Stage 0: prepare the host and Swarm."
+    stage0
 fi
+
+if (( TARGET_STAGE <= 1 )); then
+    print_info "Stage 1: mirror base images."
+    stage1
+fi
+
+if (( TARGET_STAGE <= 2 )); then
+    print_info "Stage 2: deploy the incoming proxy."
+    stage2
+fi
+
+if (( TARGET_STAGE <= 3 )); then
+    print_info "Stage 3: deploy infrastructure services."
+    stage3
+fi
+
+print_info "Stage 4: deploy business stacks."
+stage4

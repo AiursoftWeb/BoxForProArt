@@ -79,7 +79,7 @@ Select a starting stage and, when needed, a stage-4 stack name filter:
 sudo bash deploy.sh --stage 4 --filter shepherd
 ```
 
-`--stage` starts at the selected stage and continues through the later stages; it is not an instruction to run only that stage. `--filter` matches stage-4 stack names by substring. Earlier stages are not filtered, so combine it with `--stage 4` for a targeted application deployment.
+`--stage` runs the selected stage and all later stages. `--filter` matches a literal substring of stage-4 stack names. A stage-4 request with no matching stack fails before host preparation. From an earlier stage, an intentionally unmatched filter runs infrastructure and shared preparation only.
 
 ### FRP transport deployment
 
@@ -161,7 +161,7 @@ Replace `shepherd` with the stack being inspected. Confirm the desired replicas,
 
 ## Configuration
 
-`deploy.sh` reads `.env.prod` first and falls back to `.env`; it does not merge the two files. Keep real credentials in the private deployment environment. Values replace matching `{{VARIABLE_NAME}}` placeholders in temporary Compose copies; tracked Compose sources remain unchanged.
+`deploy.sh` reads `.env.prod` first and falls back to `.env`; it does not merge the two files. Keep real credentials in the private deployment environment. Values replace matching `{{VARIABLE_NAME}}` placeholders in memory before Docker receives the stack over standard input.
 
 Prepare the private file from the tracked [.env](.env) reference and fill in the values required by the selected services:
 

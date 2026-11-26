@@ -28,6 +28,19 @@ if [ "$#" -gt 0 ]; then exec "$@"; fi
 mkdir -p "$HOME/.worker"
 exec 9> "$HOME/.worker/container.lock"
 flock -n 9 || { echo 'Another worker owns this home directory.' >&2; exit 1; }
+# Keep the existing profile entry point, using the image-managed Copilot binary.
+mkdir -p "$HOME/.local/bin" "$COPILOT_HOME"
+legacy_launcher=$(printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+    'exec /home/anduin/.local/bin/copilot --effort=xhigh --max-autopilot-continues=20 --no-auto-update "$@"')
+launcher="$HOME/.local/bin/copilot-cici-super-happier"
+if [ ! -e "$launcher" ] || { [ ! -L "$launcher" ] && [ "$(cat "$launcher")" = "$legacy_launcher" ]; }; then
+    printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+        'exec /opt/worker-tools/bin/copilot --effort=xhigh --max-autopilot-continues=20 --no-auto-update "$@"' > "$launcher"
+    chmod 0700 "$launcher"
+fi
+if [ ! -e "$COPILOT_HOME/settings.json" ]; then
+    printf '%s\n' '{"effortLevel":"xhigh","showReasoning":true,"autoUpdate":false}' > "$COPILOT_HOME/settings.json"
+fi
 worker-recover prepare
 runtime_dir=${WORKER_RUNTIME_DIR:-/tmp/worker}
 mkdir -p "$runtime_dir"

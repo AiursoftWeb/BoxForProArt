@@ -140,10 +140,6 @@ arguments it replaces that inventory with the explicit list. No cron, registry
 credential or mirror configuration changes are required. Success means the
 mirror is current; application deployment is checked separately.
 
-Run the isolated CN tests with `python3 -m unittest discover -s tests -v`.
-They execute the real scripts with a local registry-client substitute and need
-neither Docker nor registry credentials/network access.
-
 Omit `--image` to refresh all images configured in the selected Puller. DMS
 shows `AllConfiguredImages` in the approval request. Refreshing all images does
 not mean all machines: ambiguous machine selection still needs `--machine-id`

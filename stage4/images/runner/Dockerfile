@@ -102,6 +102,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
       sassc \
       iproute2 \
       libgtk-4-dev \
+      libnautilus-extension-dev \
       libpcap-dev \
       libvulkan-dev \
       libclang-dev \
@@ -158,16 +159,18 @@ RUN dpkg --add-architecture arm64 && \
       libgstreamer1.0-dev:arm64 \
       libgstreamer-plugins-base1.0-dev:arm64 \
       libgtk-4-dev:arm64 \
+      libnautilus-extension-dev:arm64 \
       libadwaita-1-dev:arm64 \
       libpcap-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 
-# Rust voice builds need development metadata, not just runtime plugins/GIR.
-# Check each architecture without letting the cross build use host .pc files.
-RUN pkg-config --exists gio-2.0 gstreamer-1.0 gstreamer-app-1.0 && \
+# Rust voice and native Nautilus extension builds need development metadata, not
+# just runtime plugins/GIR. Check each architecture without letting the cross
+# build use host .pc files.
+RUN pkg-config --exists gio-2.0 gstreamer-1.0 gstreamer-app-1.0 gtk4 libnautilus-extension-4 && \
     PKG_CONFIG_PATH= \
     PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig \
-    pkg-config --exists gio-2.0 gstreamer-1.0 gstreamer-app-1.0
+    pkg-config --exists gio-2.0 gstreamer-1.0 gstreamer-app-1.0 gtk4 libnautilus-extension-4
 
 # Python packages
 RUN pip install PyYAML
